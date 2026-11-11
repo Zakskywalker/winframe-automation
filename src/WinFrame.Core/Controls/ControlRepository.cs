@@ -145,8 +145,15 @@ public sealed class ControlRepository
 
     public void Save()
     {
-        Store.Save(All);
-        SystemLogger.Log($"Saved {Count} controls to {Store.Description}");
+        try
+        {
+            Store.Save(All);
+            SystemLogger.Log($"Saved {Count} controls to {Store.Description}");
+        }
+        catch (Exception ex)
+        {
+            SystemLogger.Log($"Control store save skipped ({Store.Description}): {ex.Message}", SystemLogger.LogLevel.WARNING);
+        }
     }
 
     /// <summary>Saves to a different store (export / format conversion) without changing the active one.</summary>

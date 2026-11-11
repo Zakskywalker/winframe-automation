@@ -126,7 +126,7 @@ public class FrameworkTests
         Assert.Equal("Off", invToggle.Value);
 
         // Build a 4-step variable test and run forward 1-4, then reverse range 4-2 using StepQueueController
-        var tc = new TestCase("RangeAndInverseTest");
+        var tc = new TestCase("RangeAndInverseTest") { TestBed = "Calculator" };
         tc.AddStep("SET_VAR", "a", "1");
         tc.AddStep("SET_VAR", "b", "2");
         tc.AddStep("SET_VAR", "c", "3");

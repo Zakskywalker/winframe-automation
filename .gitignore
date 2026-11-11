@@ -13,6 +13,8 @@ artifacts/
 TestResults/
 
 ## WinFrame runtime output
+winframe_data/
+dist/
 logs/
 reports/
 snapshots/

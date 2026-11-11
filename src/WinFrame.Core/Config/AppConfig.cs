@@ -13,19 +13,42 @@ public static class WinFramePaths
     private static string? root;
 
     /// <summary>
-    /// Home folder. Priority: WINFRAME_HOME env var; a "config" folder next to the executable (portable mode);
-    /// otherwise %LOCALAPPDATA%\HandOfGlory\WinFrame.
+    /// Home folder. Priority:
+    /// 1. WINFRAME_HOME env var (if writable)
+    /// 2. Local "winframe_data" folder in the workspace/app directory (if writable)
+    /// 3. %LOCALAPPDATA%\WinFrameStudio (if writable)
+    /// 4. %TEMP%\WinFrameStudio fallback
     /// </summary>
     public static string Root
     {
         get
         {
             if (root != null) return root;
+
+            var candidates = new List<string>();
             var env = Environment.GetEnvironmentVariable("WINFRAME_HOME");
-            if (!string.IsNullOrWhiteSpace(env)) return root = env;
-            var portable = Path.Combine(AppContext.BaseDirectory, "config");
-            if (Directory.Exists(portable)) return root = AppContext.BaseDirectory;
-            return root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HandOfGlory", "WinFrame");
+            if (!string.IsNullOrWhiteSpace(env)) candidates.Add(env);
+
+            // Walk up from AppContext.BaseDirectory to see if we are inside the WinFrame repo
+            string? walk = AppContext.BaseDirectory;
+            while (!string.IsNullOrEmpty(walk) && !File.Exists(Path.Combine(walk, "WinFrame.sln")))
+            {
+                walk = Path.GetDirectoryName(walk);
+            }
+            if (!string.IsNullOrEmpty(walk))
+                candidates.Add(Path.Combine(walk, "winframe_data"));
+
+            candidates.Add(Path.Combine(AppContext.BaseDirectory, "winframe_data"));
+            candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WinFrameStudio"));
+            candidates.Add(Path.Combine(Path.GetTempPath(), "WinFrameStudio"));
+
+            foreach (var candidate in candidates)
+            {
+                if (TryEnsureWritableDirectory(candidate))
+                    return root = candidate;
+            }
+
+            return root = Path.GetTempPath();
         }
         set => root = value;
     }
@@ -35,7 +58,30 @@ public static class WinFramePaths
     public static string ThemeDir => Ensure(Path.Combine(ConfigDir, "themes"));
     public static string ConfigFile => Path.Combine(ConfigDir, "winframe.config.json");
 
-    public static string Ensure(string dir) { Directory.CreateDirectory(dir); return dir; }
+    public static string Ensure(string dir)
+    {
+        try { Directory.CreateDirectory(dir); }
+        catch { }
+        return dir;
+    }
+
+    private static bool TryEnsureWritableDirectory(string dir)
+    {
+        try
+        {
+            Directory.CreateDirectory(dir);
+            string probeDir = Path.Combine(dir, "config", "testbeds");
+            Directory.CreateDirectory(probeDir);
+            string probeFile = Path.Combine(probeDir, ".write_probe_" + Environment.ProcessId);
+            File.WriteAllText(probeFile, "ok");
+            File.Delete(probeFile);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     /// <summary>Resolves a path relative to <see cref="Root"/> unless already absolute.</summary>
     public static string Resolve(string path) => Path.IsPathRooted(path) ? path : Path.GetFullPath(Path.Combine(Root, path));
@@ -235,11 +281,38 @@ public static class ConfigManager
         return cfg;
     }
 
+    private static readonly Dictionary<string, TestBedConfig> fallbackTestBeds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Calculator"] = new TestBedConfig
+        {
+            Name = "Calculator",
+            Description = "Windows Calculator TestBed",
+            ApplicationPath = "calc.exe",
+            ProcessName = "CalculatorApp",
+            WindowTitlePattern = "Calculator"
+        },
+        ["Notepad"] = new TestBedConfig
+        {
+            Name = "Notepad",
+            Description = "Windows Notepad TestBed",
+            ApplicationPath = "notepad.exe",
+            ProcessName = "notepad",
+            WindowTitlePattern = "Notepad"
+        }
+    };
+
     public static void Save(AppConfig cfg, string? path = null)
     {
         path ??= WinFramePaths.ConfigFile;
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, JsonSerializer.Serialize(cfg, JsonOptions));
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, JsonSerializer.Serialize(cfg, JsonOptions));
+        }
+        catch (Exception ex)
+        {
+            Logging.SystemLogger.Log($"Could not save config to {path}: {ex.Message}", Logging.SystemLogger.LogLevel.WARNING);
+        }
         current = cfg;
         Logging.SystemLogger.LogDirectory = cfg.LogPath;
         ConfigChanged?.Invoke(cfg);
@@ -247,20 +320,45 @@ public static class ConfigManager
 
     public static IReadOnlyList<TestBedConfig> LoadTestBeds()
     {
-        var dir = WinFramePaths.TestBedDir;
-        var files = Directory.GetFiles(dir, "*.json");
-        if (files.Length == 0)
-        {
-            var sample = new TestBedConfig();
-            SaveTestBed(sample);
-            return new[] { sample };
-        }
         var list = new List<TestBedConfig>();
-        foreach (var f in files)
+        try
         {
-            try { var tb = JsonSerializer.Deserialize<TestBedConfig>(File.ReadAllText(f), JsonOptions); if (tb != null) list.Add(tb); }
-            catch (Exception ex) { Logging.SystemLogger.Log($"Bad test bed file {f}: {ex.Message}", Logging.SystemLogger.LogLevel.WARNING); }
+            var dir = WinFramePaths.TestBedDir;
+            if (Directory.Exists(dir))
+            {
+                var files = Directory.GetFiles(dir, "*.json");
+                if (files.Length == 0)
+                {
+                    foreach (var def in fallbackTestBeds.Values)
+                        SaveTestBed(def);
+                    files = Directory.GetFiles(dir, "*.json");
+                }
+                foreach (var f in files)
+                {
+                    try
+                    {
+                        var tb = JsonSerializer.Deserialize<TestBedConfig>(File.ReadAllText(f), JsonOptions);
+                        if (tb != null)
+                        {
+                            list.Add(tb);
+                            fallbackTestBeds[tb.Name] = tb;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logging.SystemLogger.Log($"Bad test bed file {f}: {ex.Message}", Logging.SystemLogger.LogLevel.WARNING);
+                    }
+                }
+            }
         }
+        catch (Exception ex)
+        {
+            Logging.SystemLogger.Log($"LoadTestBeds fallback activated: {ex.Message}", Logging.SystemLogger.LogLevel.WARNING);
+        }
+
+        if (list.Count == 0)
+            return fallbackTestBeds.Values.ToList();
+
         return list;
     }
 
@@ -269,8 +367,18 @@ public static class ConfigManager
 
     public static void SaveTestBed(TestBedConfig bed)
     {
-        var safe = string.Concat(bed.Name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
-        File.WriteAllText(Path.Combine(WinFramePaths.TestBedDir, safe + ".json"), JsonSerializer.Serialize(bed, JsonOptions));
+        fallbackTestBeds[bed.Name] = bed;
+        try
+        {
+            var dir = WinFramePaths.TestBedDir;
+            Directory.CreateDirectory(dir);
+            var safe = string.Concat(bed.Name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
+            File.WriteAllText(Path.Combine(dir, safe + ".json"), JsonSerializer.Serialize(bed, JsonOptions));
+        }
+        catch (Exception ex)
+        {
+            Logging.SystemLogger.Log($"Saved TestBed '{bed.Name}' in memory (disk write skipped: {ex.Message})", Logging.SystemLogger.LogLevel.WARNING);
+        }
     }
 }
 
