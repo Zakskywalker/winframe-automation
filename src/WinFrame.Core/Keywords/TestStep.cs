@@ -217,6 +217,83 @@ public abstract class TestBase : ITestExecutable
         return step;
     }
 
+    // ---- Reserved Framework Header & Application Command Builders (AUT, COMMAND, RA, KAO) ----
+
+    /// <summary>
+    /// Reserved Header Keyword 1: <c>AUT</c> — Sets the Application Under Test location (executable path or TestBed name)
+    /// directly in the test case (overriding any queue/config TestBed).
+    /// </summary>
+    public TestBase SetAut(string appOrTestBed, string args = "", string description = "Set Application Under Test (AUT) location directly in test")
+    {
+        AddStep("AUT", appOrTestBed, args, "", description);
+        return this;
+    }
+
+    /// <summary>
+    /// Reserved Header Keyword 2: <c>COMMAND</c> — Runs a comma-separated command list for app config, app arguments,
+    /// or per-test framework attributes (e.g. <c>self_healing, video="external store from config loc", args="x,x"</c>).
+    /// </summary>
+    public TestBase WithCommand(string commandList, string description = "Framework & application comma-separated command list")
+    {
+        AddStep("COMMAND", "", commandList, "", description);
+        return this;
+    }
+
+    /// <summary>
+    /// Reserved Header Keyword 3: <c>RA</c> (<c>REUSE_APP</c>) — Controls whether to reuse an already-running instance
+    /// of the AUT at the beginning of the test (<c>true</c> = <c>"1"</c>, <c>false</c> = <c>"0"</c>, <c>null</c> = <c>"config"</c>).
+    /// </summary>
+    public TestBase WithReuseApp(bool? reuse = true, string description = "Reuse App (RA) at beginning of test (1=reuse, 0=fresh, config=from config)")
+    {
+        string val = reuse == null ? "config" : reuse.Value ? "1" : "0";
+        AddStep("RA", "", val, "", description);
+        return this;
+    }
+
+    /// <summary>
+    /// Reserved Header Keyword 4: <c>KAO</c> (<c>KEEP_APP_OPEN</c>) — Controls whether to keep the AUT open between tests
+    /// (<c>true</c> = <c>"1"</c>, <c>false</c> = <c>"0"</c>, <c>null</c> = <c>"config"</c>).
+    /// </summary>
+    public TestBase WithKeepAppOpen(bool? keepOpen = true, string description = "Keep App Open (KAO) between tests (1=keep open, 0=close after test, config=from config)")
+    {
+        string val = keepOpen == null ? "config" : keepOpen.Value ? "1" : "0";
+        AddStep("KAO", "", val, "", description);
+        return this;
+    }
+
+    /// <summary>
+    /// Ensures the 4 reserved framework header keywords (<c>AUT</c>, <c>COMMAND</c>, <c>RA</c>, <c>KAO</c>)
+    /// are present at the very beginning of <see cref="Steps"/>, inserting or updating them as steps 1..4.
+    /// </summary>
+    public TestBase EnsureReservedHeader(
+        string? aut = null,
+        string? commandList = null,
+        string? reuseApp = null,
+        string? keepAppOpen = null)
+    {
+        string effectiveAut = aut ?? TestBed ?? "calc.exe";
+        string effectiveCmd = commandList ?? "self_healing, highlight=\"1\", video=\"external store from config loc\"";
+        string effectiveRa = reuseApp ?? "config";
+        string effectiveKao = keepAppOpen ?? "config";
+
+        // Remove any existing leading reserved header steps to avoid duplicates when re-seeding
+        var bodySteps = Steps.SkipWhile(s => TestHeaderCommands.IsReservedHeaderKeyword(s.Action)).ToList();
+
+        Steps.Clear();
+        AddStep("AUT", effectiveAut, "", "", "Reserved: Set Application Under Test (AUT) location directly in test");
+        AddStep("COMMAND", "", effectiveCmd, "", "Reserved: Comma-separated app/framework command list (e.g. name=\"x,x\" or video=\"external store from config loc\")");
+        AddStep("RA", "", effectiveRa, "", "Reserved: Reuse App (RA) at beginning of test (1/true, 0/false, or config)");
+        AddStep("KAO", "", effectiveKao, "", "Reserved: Keep App Open (KAO) between tests (1/true, 0/false, or config)");
+
+        foreach (var s in bodySteps)
+        {
+            s.Index = Steps.Count + 1;
+            Steps.Add(s);
+        }
+
+        return this;
+    }
+
     public TestBase StartApp(string appOrTestBed, string args = "") { AddStep("START_APP", appOrTestBed, args); return this; }
     public TestBase Click(string target) { AddStep("CLICK", target); return this; }
     public TestBase UiaInvoke(string target) { AddStep("UIA_INVOKE", target); return this; }

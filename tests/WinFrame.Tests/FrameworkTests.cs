@@ -237,10 +237,18 @@ public class FrameworkTests
 
         var csvTests = TestSheetLoader.LoadFromFile(csvPath);
         Assert.Single(csvTests);
-        Assert.Equal(11, csvTests[0].Steps.Count);
+        Assert.Equal(13, csvTests[0].Steps.Count);
+        Assert.Equal("AUT", csvTests[0].Steps[0].Action);
+        Assert.Equal("COMMAND", csvTests[0].Steps[1].Action);
+        Assert.Equal("RA", csvTests[0].Steps[2].Action);
+        Assert.Equal("KAO", csvTests[0].Steps[3].Action);
 
         var jsonTests = TestSheetLoader.LoadFromFile(jsonSuitePath);
         Assert.Equal(2, jsonTests.Count);
+        Assert.Equal("AUT", jsonTests[0].Steps[0].Action);
+        Assert.Equal("COMMAND", jsonTests[0].Steps[1].Action);
+        Assert.Equal("RA", jsonTests[0].Steps[2].Action);
+        Assert.Equal("KAO", jsonTests[0].Steps[3].Action);
 
         // Generate/update the multi-sheet Excel (.xlsx) sample suite & Excel control sheet
         Directory.CreateDirectory(Path.GetDirectoryName(xlsxSuitePath)!);
@@ -265,6 +273,97 @@ public class FrameworkTests
         Assert.True(def.Attributes.ContainsKey("Win32.WindowRelX"));
         Assert.True(def.Attributes.ContainsKey("Win32.ControlRelX"));
         Assert.False(string.IsNullOrWhiteSpace(hover.SuggestedName));
+    }
+
+    [Fact]
+    public void ReservedHeaderKeywords_AUT_COMMAND_RA_And_KAO_Parse_And_Execute_With_ConfigFallback()
+    {
+        // 1. Verify TestCommandParser handles standalone flags AND quoted comma-containing values like name="x,x" and video="external store from config loc"
+        string cmdString = "self_healing, video=\"external store from config loc\", args=\"--mode=test,fast\", highlight=\"1\", custom_pair=\"x,x\"";
+        var parsed = TestCommandParser.Parse(cmdString);
+        Assert.Equal(5, parsed.Count);
+
+        Assert.Equal("self_healing", parsed[0].Name);
+        Assert.False(parsed[0].HasExplicitValue);
+        Assert.Equal("1", parsed[0].EffectiveValue);
+
+        Assert.Equal("video", parsed[1].Name);
+        Assert.True(parsed[1].HasExplicitValue);
+        Assert.Equal("external store from config loc", parsed[1].Value);
+
+        Assert.Equal("args", parsed[2].Name);
+        Assert.Equal("--mode=test,fast", parsed[2].Value);
+        Assert.Equal(new[] { "--mode=test", "fast" }, parsed[2].SplitValueItems());
+
+        Assert.Equal("custom_pair", parsed[4].Name);
+        Assert.Equal("x,x", parsed[4].Value);
+
+        // 2. Verify AUT, COMMAND, RA, and KAO execution & Config fallback when RA/KAO are "config" or explicit 0/1
+        var cfg = new AppConfig
+        {
+            ReuseApp = true,
+            KeepAppOpen = false,
+            StepDelayMs = 0
+        };
+        var repo = new ControlRepository();
+        var ctx = new KeywordContext(repo, cfg) { AutoHarnessOnAutKeyword = false };
+
+        // Test RA & KAO falling back to Config when value is empty or "config"
+        Assert.True(TestHeaderCommands.KeywordReuseApp(ctx, "", "config"));
+        Assert.False(TestHeaderCommands.KeywordKeepAppOpen(ctx, "", "config"));
+
+        // Override RA=0 and KAO=1 explicitly in the test
+        Assert.False(TestHeaderCommands.KeywordReuseApp(ctx, "", "0"));
+        Assert.True(TestHeaderCommands.KeywordKeepAppOpen(ctx, "", "1"));
+        Assert.Equal("0", ctx.Variables["ra"]);
+        Assert.Equal("1", ctx.Variables["kao"]);
+
+        // Execute COMMAND keyword with standalone + key="x,x" + video="external store from config loc"
+        TestHeaderCommands.KeywordCommand(ctx, "", cmdString);
+        Assert.True(ctx.SelfHealingEnabled);
+        Assert.Equal("external store from config loc", ctx.VideoRecordingSetting);
+        Assert.Equal("external store from config loc", ctx.Variables["video"]);
+        Assert.Equal("--mode=test,fast", ctx.AppArgumentsOverride);
+        Assert.Equal("x,x", ctx.ActiveCommands["custom_pair"]);
+        Assert.Equal("x,x", ctx.Variables["cmd.custom_pair"]);
+
+        // Execute AUT keyword override in test
+        string aut = TestHeaderCommands.KeywordAut(ctx, @"C:\Apps\MyCustomAut.exe");
+        Assert.Equal(@"C:\Apps\MyCustomAut.exe", aut);
+        Assert.Equal(@"C:\Apps\MyCustomAut.exe", ctx.AutOverride);
+        Assert.NotNull(ctx.TestBed);
+        Assert.Equal("MyCustomAut", ctx.TestBed!.Name);
+        Assert.Equal("--mode=test,fast", ctx.TestBed.Arguments);
+        Assert.False(ctx.TestBed.ReuseApp);
+        Assert.True(ctx.TestBed.KeepAppOpen);
+
+        // 3. Verify EnsureReservedHeader & full KeywordFramework execution of a test starting with AUT, COMMAND, RA, KAO
+        var tc = new TestCase("HeaderStructureTest") { TestBed = "Calculator" };
+        tc.SetAut("Calculator")
+          .WithCommand("self_healing=\"uia,opencv\", video=\"external store from config loc\", custom_attr=\"x,x\"")
+          .WithReuseApp(true)
+          .WithKeepAppOpen(true);
+        tc.AddStep("ASSERT_VAR", "video", "external store from config loc");
+        tc.AddStep("ASSERT_VAR", "custom_attr", "x,x");
+        tc.AddStep("ASSERT_VAR", "ra", "1");
+        tc.AddStep("ASSERT_VAR", "kao", "1");
+
+        // Disable actual process launch for unit test isolation
+        var calcBed = ConfigManager.GetTestBed("Calculator");
+        bool origStart = calcBed?.StartIfNotRunning ?? true;
+        if (calcBed != null) calcBed.StartIfNotRunning = false;
+        try
+        {
+            var engine = new KeywordFramework(repo, cfg);
+            var runRes = engine.ExecuteTest(tc).EnsurePassed();
+            Assert.Equal(8, runRes.PassedSteps);
+            Assert.Equal("external store from config loc", runRes.OutputVariables["video"]);
+            Assert.Equal("x,x", runRes.OutputVariables["custom_attr"]);
+        }
+        finally
+        {
+            if (calcBed != null) calcBed.StartIfNotRunning = origStart;
+        }
     }
 }
 

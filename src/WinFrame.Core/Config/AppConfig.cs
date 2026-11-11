@@ -185,6 +185,14 @@ public sealed class AppConfig
     public bool CaptureControlImagesDuringRun { get; set; }
     public string? DefaultTestBed { get; set; }
 
+    // ---- Application Command Structure Defaults (RA / KAO) ----
+    /// <summary>Default for the reserved <c>RA</c> (Reuse App) header keyword when not overridden in the test.</summary>
+    public bool ReuseApp { get; set; } = true;
+    /// <summary>Default for the reserved <c>KAO</c> (Keep App Open) header keyword when not overridden in the test.</summary>
+    public bool KeepAppOpen { get; set; } = true;
+    /// <summary>Default external/local video recording location when <c>video</c> command is used.</summary>
+    public string VideoStorageLocation { get; set; } = "videos";
+
     // ---- Win32 Control Outline Highlighting ----
     /// <summary>Set to "1" or "true" to enable Win32 GDI outline highlighting during test runs; "0", "", or null to turn off.</summary>
     public string? Highlight { get; set; } = "1";
@@ -240,10 +248,36 @@ public sealed class TestBedConfig
     public string WindowTitlePattern { get; set; } = "Calculator";
     public int StartupTimeoutMs { get; set; } = 15000;
     public bool StartIfNotRunning { get; set; } = true;
+    public bool ReuseApp { get; set; } = true;
+    public bool KeepAppOpen { get; set; } = true;
     public bool CloseAfterRun { get; set; }
     /// <summary>Optional credential override for this bed.</summary>
     public CredentialSet? Credentials { get; set; }
     public Dictionary<string, string> Variables { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public TestBedConfig Clone() => new()
+    {
+        Name = Name,
+        Description = Description,
+        Machine = Machine,
+        ApplicationPath = ApplicationPath,
+        Arguments = Arguments,
+        WorkingDirectory = WorkingDirectory,
+        ProcessName = ProcessName,
+        WindowTitlePattern = WindowTitlePattern,
+        StartupTimeoutMs = StartupTimeoutMs,
+        StartIfNotRunning = StartIfNotRunning,
+        ReuseApp = ReuseApp,
+        KeepAppOpen = KeepAppOpen,
+        CloseAfterRun = CloseAfterRun,
+        Credentials = Credentials == null ? null : new CredentialSet
+        {
+            Username = Credentials.Username,
+            Domain = Credentials.Domain,
+            ProtectedPassword = Credentials.ProtectedPassword
+        },
+        Variables = new Dictionary<string, string>(Variables, StringComparer.OrdinalIgnoreCase)
+    };
 }
 
 /// <summary>Loads/saves <see cref="AppConfig"/> and <see cref="TestBedConfig"/> files.</summary>

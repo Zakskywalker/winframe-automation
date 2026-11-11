@@ -32,15 +32,17 @@ public sealed class SettingsDialog : Form
         var chkTrayNotif = new CheckBox { Name = "chkTrayNotifications", Text = "Show notification tray tooltips & scrolling icon messages", Checked = cfg.TrayNotifications, AutoSize = true, Location = new Point(20, 84) };
         var chkFailShot = new CheckBox { Name = "chkCaptureScreenshotOnFailure", Text = "Capture OpenCV screenshot automatically on step failure", Checked = cfg.CaptureScreenshotOnFailure, AutoSize = true, Location = new Point(20, 116) };
         var chkRunShot = new CheckBox { Name = "chkCaptureControlImagesDuringRun", Text = "Capture OpenCV control + window snapshots on every run", Checked = cfg.CaptureControlImagesDuringRun, AutoSize = true, Location = new Point(20, 148) };
+        var chkReuseApp = new CheckBox { Name = "chkDefaultReuseApp", Text = "Default RA (Reuse App at beginning of test when not set in test)", Checked = cfg.ReuseApp, AutoSize = true, Location = new Point(20, 176) };
+        var chkKeepAppOpen = new CheckBox { Name = "chkDefaultKeepAppOpen", Text = "Default KAO (Keep App Open between tests when not set in test)", Checked = cfg.KeepAppOpen, AutoSize = true, Location = new Point(20, 204) };
 
-        var lblHighlight = new Label { Text = "Win32 Control Highlight Variable (1/true = ON, 0/empty = OFF):", AutoSize = true, Location = new Point(20, 190) };
-        var cmbHighlight = new ComboBox { Name = "cmbHighlightVar", Location = new Point(390, 186), Width = 140 };
+        var lblHighlight = new Label { Text = "Win32 Control Highlight Variable (1/true = ON, 0/empty = OFF):", AutoSize = true, Location = new Point(20, 240) };
+        var cmbHighlight = new ComboBox { Name = "cmbHighlightVar", Location = new Point(390, 236), Width = 140 };
         cmbHighlight.Items.AddRange(new object[] { "1", "true", "0", "" });
         cmbHighlight.Text = cfg.Highlight ?? "1";
 
-        var lblHiColor = new Label { Text = "Win32 Outline Highlight Color (Hex or Name):", AutoSize = true, Location = new Point(20, 226) };
-        var txtHiColor = new TextBox { Name = "txtHighlightColor", Text = cfg.HighlightColor, Location = new Point(390, 222), Width = 140 };
-        var btnPickHiColor = new Button { Name = "btnPickHighlightColor", Text = "Pick...", Location = new Point(540, 220), Width = 70 };
+        var lblHiColor = new Label { Text = "Win32 Outline Highlight Color (Hex or Name):", AutoSize = true, Location = new Point(20, 274) };
+        var txtHiColor = new TextBox { Name = "txtHighlightColor", Text = cfg.HighlightColor, Location = new Point(390, 270), Width = 140 };
+        var btnPickHiColor = new Button { Name = "btnPickHighlightColor", Text = "Pick...", Location = new Point(540, 268), Width = 70 };
         btnPickHiColor.Click += (_, _) =>
         {
             using var cd = new ColorDialog();
@@ -48,20 +50,20 @@ public sealed class SettingsDialog : Form
                 txtHiColor.Text = $"#{cd.Color.R:X2}{cd.Color.G:X2}{cd.Color.B:X2}";
         };
 
-        var lblHiInterval = new Label { Text = "Default Short Highlight Interval (ms):", AutoSize = true, Location = new Point(20, 262) };
-        var numHiInterval = new NumericUpDown { Name = "numHighlightInterval", Minimum = 30, Maximum = 5000, Value = Math.Clamp(cfg.HighlightIntervalMs, 30, 5000), Location = new Point(390, 258), Width = 140 };
+        var lblHiInterval = new Label { Text = "Default Short Highlight Interval (ms):", AutoSize = true, Location = new Point(20, 308) };
+        var numHiInterval = new NumericUpDown { Name = "numHighlightInterval", Minimum = 30, Maximum = 5000, Value = Math.Clamp(cfg.HighlightIntervalMs, 30, 5000), Location = new Point(390, 304), Width = 140 };
 
-        var lblStepDelay = new Label { Text = "Default Step Delay (ms):", AutoSize = true, Location = new Point(20, 298) };
-        var numStepDelay = new NumericUpDown { Name = "numStepDelay", Minimum = 0, Maximum = 10000, Value = Math.Clamp(cfg.StepDelayMs, 0, 10000), Location = new Point(390, 294), Width = 140 };
+        var lblStepDelay = new Label { Text = "Default Step Delay (ms):", AutoSize = true, Location = new Point(20, 342) };
+        var numStepDelay = new NumericUpDown { Name = "numStepDelay", Minimum = 0, Maximum = 10000, Value = Math.Clamp(cfg.StepDelayMs, 0, 10000), Location = new Point(390, 338), Width = 140 };
 
-        var lblReportTheme = new Label { Text = "Preferred HTML Report Template:", AutoSize = true, Location = new Point(20, 334) };
-        var cmbReportTheme = new ComboBox { Name = "cmbReportTheme", DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(390, 330), Width = 140 };
+        var lblReportTheme = new Label { Text = "Preferred HTML Report Template:", AutoSize = true, Location = new Point(20, 376) };
+        var cmbReportTheme = new ComboBox { Name = "cmbReportTheme", DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(390, 372), Width = 140 };
         cmbReportTheme.Items.AddRange(new object[] { "dark", "light" });
         cmbReportTheme.SelectedItem = cfg.ReportTheme.Equals("light", StringComparison.OrdinalIgnoreCase) ? "light" : "dark";
 
         tabGeneral.Controls.AddRange(new Control[]
         {
-            chkSplash, chkTray, chkTrayNotif, chkFailShot, chkRunShot,
+            chkSplash, chkTray, chkTrayNotif, chkFailShot, chkRunShot, chkReuseApp, chkKeepAppOpen,
             lblHighlight, cmbHighlight, lblHiColor, txtHiColor, btnPickHiColor,
             lblHiInterval, numHiInterval, lblStepDelay, numStepDelay, lblReportTheme, cmbReportTheme
         });
@@ -147,6 +149,8 @@ public sealed class SettingsDialog : Form
             cfg.TrayNotifications = chkTrayNotif.Checked;
             cfg.CaptureScreenshotOnFailure = chkFailShot.Checked;
             cfg.CaptureControlImagesDuringRun = chkRunShot.Checked;
+            cfg.ReuseApp = chkReuseApp.Checked;
+            cfg.KeepAppOpen = chkKeepAppOpen.Checked;
             cfg.Highlight = cmbHighlight.Text;
             cfg.HighlightColor = txtHiColor.Text.Trim();
             cfg.HighlightIntervalMs = (int)numHiInterval.Value;

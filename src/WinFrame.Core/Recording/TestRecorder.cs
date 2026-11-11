@@ -208,6 +208,13 @@ public sealed class TestRecorder : IDisposable
         CurrentTest = new TestCase(string.IsNullOrWhiteSpace(testName) ? $"Recorded_{DateTime.Now:HHmmss}" : testName);
         if (targetWindowHwnd != IntPtr.Zero) TargetWindowHwnd = targetWindowHwnd;
 
+        // Seed the 4 reserved framework header keywords (AUT, COMMAND, RA, KAO) as the first steps of the recorded test
+        CurrentTest.EnsureReservedHeader(
+            aut: ConfigManager.Current.DefaultTestBed ?? "calc.exe",
+            commandList: "self_healing, highlight=\"1\", video=\"external store from config loc\"",
+            reuseApp: "config",
+            keepAppOpen: "config");
+
         activeTargetControl = null;
         activeTargetHwnd = IntPtr.Zero;
         activeTargetElement = null;

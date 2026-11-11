@@ -285,14 +285,26 @@ public sealed class RecordedTestEditorDialog : Form
         var btnOutline = new Button { Name = "btnOutlineStepControl", Text = "★ Outline Control (Win32)", Width = 165, Height = 30 };
         btnOutline.Click += (_, _) => OutlineSelectedControl();
 
+        var btnHeader = new Button { Name = "btnEnsureReservedHeader", Text = "⚙ Header (AUT/CMD/RA/KAO)", Width = 175, Height = 30 };
+        btnHeader.Click += (_, _) =>
+        {
+            SyncGridToModel();
+            testCase.EnsureReservedHeader(
+                aut: testCase.TestBed ?? "calc.exe",
+                commandList: "self_healing, highlight=\"1\", video=\"external store from config loc\"",
+                reuseApp: "config",
+                keepAppOpen: "config");
+            PopulateGridFromModel();
+        };
+
         var lblHint = new Label
         {
-            Text = "Edit any cell directly, or use Add / Move Up / Move Down / Delete to refine steps one by one.",
+            Text = "Edit any cell directly, or use Add / Move Up / Move Down / Delete to refine steps.",
             AutoSize = true,
             Margin = new Padding(12, 7, 0, 0)
         };
 
-        topBar.Controls.AddRange(new Control[] { btnAdd, btnMoveUp, btnMoveDown, btnDelete, btnOutline, lblHint });
+        topBar.Controls.AddRange(new Control[] { btnAdd, btnMoveUp, btnMoveDown, btnDelete, btnOutline, btnHeader, lblHint });
 
         var split = new SplitContainer
         {

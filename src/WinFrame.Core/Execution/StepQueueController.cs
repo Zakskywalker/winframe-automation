@@ -137,13 +137,22 @@ public static class StepInversionEngine
                 Description = $"[Inverse of UIA_COLLAPSE on {step.Target}]"
             },
 
-            // Start App <-> Stop App
-            "START_APP" or "LAUNCH" => new TestStep
+            // Start App / AUT <-> Stop App
+            "START_APP" or "LAUNCH" or "AUT" or "SET_AUT" or "APP_UNDER_TEST" => new TestStep
             {
                 Index = step.Index,
                 Action = "STOP_APP",
                 Target = step.Target,
                 Description = $"[Inverse of {act}: stop {step.Target}]"
+            },
+
+            // Reserved Header Commands (COMMAND, RA, KAO) -> Inverse no-op / log
+            "COMMAND" or "CMD" or "COMMANDS" or "RA" or "REUSE_APP" or "KAO" or "KEEP_APP_OPEN" => new TestStep
+            {
+                Index = step.Index,
+                Action = "LOG",
+                Target = $"Inverse skip (reserved header step {step.Index}: {act})",
+                Description = $"[Inverse no-op for {act}]"
             },
 
             "STOP_APP" or "CLOSE_APP" => new TestStep

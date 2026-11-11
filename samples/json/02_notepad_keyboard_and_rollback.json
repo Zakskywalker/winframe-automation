@@ -8,6 +8,38 @@
   "Steps": [
     {
       "Index": 1,
+      "Action": "AUT",
+      "Target": "notepad.exe",
+      "Value": "",
+      "Options": {},
+      "Description": "Reserved: Set Application Under Test (AUT) location directly in test"
+    },
+    {
+      "Index": 2,
+      "Action": "COMMAND",
+      "Target": "",
+      "Value": "self_healing, highlight=\"1\", video=\"external store from config loc\"",
+      "Options": {},
+      "Description": "Reserved: Comma-separated command list for app config & test attributes"
+    },
+    {
+      "Index": 3,
+      "Action": "RA",
+      "Target": "",
+      "Value": "1",
+      "Options": {},
+      "Description": "Reserved: Reuse App (RA) at beginning of test"
+    },
+    {
+      "Index": 4,
+      "Action": "KAO",
+      "Target": "",
+      "Value": "1",
+      "Options": {},
+      "Description": "Reserved: Keep App Open (KAO) between tests"
+    },
+    {
+      "Index": 5,
       "Action": "SET_VAR",
       "Target": "session_status",
       "Value": "typing",
@@ -15,7 +47,7 @@
       "Description": "Initialize session_status variable"
     },
     {
-      "Index": 2,
+      "Index": 6,
       "Action": "HIGHLIGHT",
       "Target": "@edit_1",
       "Value": "#A855F7|260|3",
@@ -23,7 +55,7 @@
       "Description": "Outline @edit_1 with purple Win32 GDI pen"
     },
     {
-      "Index": 3,
+      "Index": 7,
       "Action": "TYPE",
       "Target": "@edit_1",
       "Value": "Hand of Glory Games and Software — Author: ${author}",
@@ -33,7 +65,7 @@
       "Description": "Type text into @edit_1 (Rule-based inverse: CLEAR_TEXT)"
     },
     {
-      "Index": 4,
+      "Index": 8,
       "Action": "SEND_KEYS",
       "Target": "@edit_1",
       "Value": "{ENTER}",
@@ -41,7 +73,7 @@
       "Description": "Commit line with Enter key"
     },
     {
-      "Index": 5,
+      "Index": 9,
       "Action": "SET_VAR",
       "Target": "session_status",
       "Value": "committed",
@@ -49,7 +81,7 @@
       "Description": "Mark session as committed"
     },
     {
-      "Index": 6,
+      "Index": 10,
       "Action": "ASSERT_VAR",
       "Target": "session_status",
       "Value": "committed",
@@ -60,4 +92,3 @@
     }
   ]
 }
-

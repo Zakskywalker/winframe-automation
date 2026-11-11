@@ -1,12 +1,13 @@
 Index,Action,Target,Value,Options,Description
-1,SET_VAR,highlight,true,,Turn on Win32 control outline highlighting (true / 1)
-2,SET_VAR,doc_title,HandOfGlory_Notes,,Initialize document title variable
-3,START_APP,notepad.exe,,,Launch Windows Notepad for keyboard input test
-4,WAIT,,600,,Wait for Notepad editor window
-5,HIGHLIGHT,@edit_1,#22C55E|260|3,Outline the editor control in green before typing
-6,TYPE,@edit_1,Hand of Glory Games and Software - WinFrame 1.0,retry=1,Type header line via Unicode hardware input (Inverse: CLEAR_TEXT)
-7,SEND_KEYS,@edit_1,{ENTER},,Press Enter key to start a new line
-8,TYPE,@edit_1,Recorded with Mouse Scrape + Window-to-Control Position,,Type second line of text
-9,ASSERT_VAR,doc_title,HandOfGlory_Notes,,Verify variable state before optional inverse rollback
-10,LOG,Notepad Typing Test,Completed keyboard input for ${doc_title},,Log result
-
+1,AUT,notepad.exe,,,Reserved: Set Application Under Test (AUT) location directly in test
+2,COMMAND,,"self_healing=""uia,win32"", highlight=""true"", video=""external store from config loc""",,Reserved: Comma-separated command list (self_healing with multi-value & external video store)
+3,RA,,config,,Reserved: Reuse App (RA) at beginning of test (falls back to Config if 'config' or empty)
+4,KAO,,1,,Reserved: Keep App Open (KAO) between tests (1 = keep open for inspection)
+5,SET_VAR,doc_title,HandOfGlory_Notes,,Initialize document title variable
+6,WAIT,,600,,Wait for Notepad editor window
+7,HIGHLIGHT,@edit_1,#22C55E|260|3,,Outline the editor control in green before typing
+8,TYPE,@edit_1,Hand of Glory Games and Software - WinFrame 1.0,retry=1,Type header line via Unicode hardware input (Inverse: CLEAR_TEXT)
+9,SEND_KEYS,@edit_1,{ENTER},,Press Enter key to start a new line
+10,TYPE,@edit_1,Recorded with Mouse Scrape + Window-to-Control Position,,Type second line of text
+11,ASSERT_VAR,doc_title,HandOfGlory_Notes,,Verify variable state before optional inverse rollback
+12,LOG,Notepad Typing Test,Completed keyboard input for ${doc_title} (RA=${ra} KAO=${kao}),,Log result

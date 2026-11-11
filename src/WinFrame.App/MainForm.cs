@@ -177,6 +177,7 @@ public sealed class MainForm : Form
         mnuTools.DropDownItems.Add(new ToolStripSeparator());
         mnuTools.DropDownItems.Add("OpenCV Snipping Tool (Region/Control Snapshot)...", null, (_, _) => SnipRegionInteractive());
         mnuTools.DropDownItems.Add("Snapshot Full Screen (OpenCV)...", null, (_, _) => SnapshotScreenQuick());
+        mnuTools.DropDownItems.Add("Insert Reserved Test Header (AUT / COMMAND / RA / KAO)", null, (_, _) => InsertReservedHeaderIntoCurrentTest());
         mnuTools.DropDownItems.Add("Insert Win32 HIGHLIGHT Steps for All Controls", null, (_, _) => InsertHighlightStepsIntoCurrentTest());
         mnuTools.DropDownItems.Add("Toggle Remote API Service (" + cfg.Service.Urls + ")", null, (_, _) => ToggleApiServer());
         mnuTools.DropDownItems.Add("Generate Dark & Light HTML Reports", null, (_, _) => GenerateReportsNow());
@@ -241,7 +242,16 @@ public sealed class MainForm : Form
         var btnLoadDoc = new Button { Name = "btnLoadFromDoc", Text = "Load Sheet", Width = 88, Height = 28 };
         btnLoadDoc.Click += (_, _) => LoadTestSheetsDialog();
         var btnAddMem = new Button { Name = "btnLoadFromMemory", Text = "+ Memory Test", Width = 100, Height = 28 };
-        btnAddMem.Click += (_, _) => AddTestToQueue(new TestCase($"InMemory_{queuedTests.Count + 1}"));
+        btnAddMem.Click += (_, _) =>
+        {
+            var memTest = new TestCase($"InMemory_{queuedTests.Count + 1}") { TestBed = cmbTestBed.SelectedItem?.ToString() ?? "Calculator" };
+            memTest.EnsureReservedHeader(
+                aut: memTest.TestBed,
+                commandList: "self_healing, highlight=\"1\", video=\"external store from config loc\"",
+                reuseApp: "config",
+                keepAppOpen: "config");
+            AddTestToQueue(memTest);
+        };
         var btnRunQueue = new Button { Name = "btnRunQueue", Text = "▶ Run Queue", Width = 95, Height = 28, Tag = "accent" };
         btnRunQueue.Click += (_, _) => RunQueueAsync(chkReplayOpenCv.Checked);
         var btnStopQueue = new Button { Name = "btnStopQueue", Text = "■ Stop", Width = 65, Height = 28 };
@@ -278,13 +288,16 @@ public sealed class MainForm : Form
         var btnSnip = new Button { Name = "btnOpenCvSnip", Text = "✂ OpenCV Snip", Width = 105, Height = 30 };
         btnSnip.Click += (_, _) => SnipRegionInteractive();
 
+        var btnAddHeader = new Button { Name = "btnInsertReservedHeader", Text = "⚙ Header (AUT/CMD/RA/KAO)", Width = 172, Height = 30 };
+        btnAddHeader.Click += (_, _) => InsertReservedHeaderIntoCurrentTest();
+
         var btnAddHighlight = new Button { Name = "btnAddHighlightSteps", Text = "★ Add Highlight Steps", Width = 145, Height = 30 };
         btnAddHighlight.Click += (_, _) => InsertHighlightStepsIntoCurrentTest();
 
         barDevQueue.Controls.AddRange(new Control[]
         {
             btnStepPrev, btnStepNext, lblStepCursor, lblRange, txtRangeSpec, btnRunRange, btnRevRange,
-            chkAutoInverse, chkReplayOpenCv, chkWin32Highlight, btnRecord, btnSnip, btnAddHighlight
+            chkAutoInverse, chkReplayOpenCv, chkWin32Highlight, btnRecord, btnSnip, btnAddHeader, btnAddHighlight
         });
 
         gridSteps.Columns.Add("Index", "#");
@@ -563,6 +576,19 @@ public sealed class MainForm : Form
         }
     }
 
+    private void InsertReservedHeaderIntoCurrentTest()
+    {
+        SyncGridToCurrentTest();
+        string selectedBed = cmbTestBed.SelectedItem?.ToString() ?? stepController.Test.TestBed ?? "calc.exe";
+        stepController.Test.EnsureReservedHeader(
+            aut: selectedBed,
+            commandList: "self_healing, highlight=\"1\", video=\"external store from config loc\"",
+            reuseApp: "config",
+            keepAppOpen: "config");
+        LoadTestIntoGridAndController(stepController.Test);
+        UpdateStatus("Inserted reserved framework header keywords: AUT, COMMAND, RA, KAO at top of test.");
+    }
+
     private void InsertHighlightStepsIntoCurrentTest()
     {
         CommitAccessoryEdits();
@@ -799,10 +825,17 @@ public sealed class MainForm : Form
     private static TestCase CreateSampleCalculatorTest()
     {
         var tc = new TestCase("Sample_Keyword_Demo") { TestBed = "Calculator" };
+        // Reserved Framework Header Section (AUT, COMMAND, RA, KAO)
+        tc.SetAut("Calculator", "", "Reserved: Set Application Under Test (AUT) location directly in test")
+          .WithCommand("self_healing, highlight=\"1\", video=\"external store from config loc\"", "Reserved: Comma-separated app/framework command list")
+          .WithReuseApp(true, "Reserved: Reuse App (RA) at beginning of test (1=reuse, 0=fresh, config=from config)")
+          .WithKeepAppOpen(true, "Reserved: Keep App Open (KAO) between tests (1=keep open, 0=close after test, config=from config)");
+
+        // Test Body Steps
         tc.AddStep("SET_VAR", "greeting", "Hello WinFrame", description: "Set greeting variable");
         tc.AddStep("ASSERT_VAR", "greeting", "Hello WinFrame", description: "Verify variable");
         tc.AddStep("HIGHLIGHT", "@num8Button", "#F59E0B|250", description: "Win32 GDI outline highlight when highlight=1/true");
-        tc.AddStep("LOG", "WinFrame Ready", "${greeting}", description: "Write to test log");
+        tc.AddStep("LOG", "WinFrame Ready", "${greeting} | Video=${video} | RA=${ra} | KAO=${kao}", description: "Write to test log");
         return tc;
     }
 

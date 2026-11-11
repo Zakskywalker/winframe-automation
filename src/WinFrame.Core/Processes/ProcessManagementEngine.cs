@@ -72,12 +72,33 @@ public sealed class ProcessManagementEngine : IDisposable
     // Core operations
     // --------------------------------------------------------------------------------------------
 
-    /// <summary>Starts or attaches to the application described by a <see cref="TestBedConfig"/>.</summary>
-    public HarnessedApp Harness(TestBedConfig bed) =>
-        StartOrAttach(bed.Name, bed.ApplicationPath, bed.Arguments, bed.ProcessName, bed.WindowTitlePattern, bed.WorkingDirectory, bed.StartupTimeoutMs, bed.StartIfNotRunning);
+    /// <summary>Starts or attaches to the application described by a <see cref="TestBedConfig"/>, honoring <paramref name="reuseExisting"/> (<c>RA</c>).</summary>
+    public HarnessedApp Harness(TestBedConfig bed, bool? reuseExisting = null) =>
+        StartOrAttach(
+            bed.Name,
+            bed.ApplicationPath,
+            bed.Arguments,
+            bed.ProcessName,
+            bed.WindowTitlePattern,
+            bed.WorkingDirectory,
+            bed.StartupTimeoutMs,
+            bed.StartIfNotRunning,
+            reuseExisting ?? bed.ReuseApp);
 
-    /// <summary>Attaches to a running window/process or starts the executable if not running.</summary>
-    public HarnessedApp StartOrAttach(string key, string executablePath, string arguments = "", string processName = "", string windowTitlePattern = "", string workingDir = "", int timeoutMs = 15000, bool startIfNotRunning = true)
+    /// <summary>
+    /// Attaches to a running window/process (when <paramref name="reuseExisting"/> is true) or starts a fresh instance
+    /// of the executable (when <paramref name="reuseExisting"/> is false or the application is not yet running).
+    /// </summary>
+    public HarnessedApp StartOrAttach(
+        string key,
+        string executablePath,
+        string arguments = "",
+        string processName = "",
+        string windowTitlePattern = "",
+        string workingDir = "",
+        int timeoutMs = 15000,
+        bool startIfNotRunning = true,
+        bool reuseExisting = true)
     {
         var app = new HarnessedApp
         {
@@ -87,12 +108,13 @@ public sealed class ProcessManagementEngine : IDisposable
             WindowTitlePattern = windowTitlePattern
         };
 
-        if (!TryLocateExisting(app) && startIfNotRunning && !string.IsNullOrWhiteSpace(executablePath))
+        bool attached = reuseExisting && TryLocateExisting(app);
+        if (!attached && startIfNotRunning && !string.IsNullOrWhiteSpace(executablePath))
             LaunchProcess(app, timeoutMs);
 
         lock (sync) apps[app.Key] = app;
         ActiveKey = app.Key;
-        AppStateChanged?.Invoke(app, "Harnessed");
+        AppStateChanged?.Invoke(app, attached ? "Reused" : "Harnessed");
         return app;
     }
 

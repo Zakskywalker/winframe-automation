@@ -1,13 +1,14 @@
 Index,Action,Target,Value,Options,Description
-1,SET_VAR,highlight,1,,Enable Win32 GDI outline highlighting for all controls in this test
-2,START_APP,calc.exe,,,Launch Windows Calculator (or attach via ProcessManagementEngine)
-3,WAIT,,700,,Allow Calculator main window to render
-4,HIGHLIGHT,"@button_1,@button_2,@button_3",#F59E0B|250|3,Outline controls using Win32 GDI pen before clicking
-5,UIA_INVOKE,AutomationId=num7Button,,retry=2,Click '7' via UIA InvokePattern (or fallback to Win32 click)
-6,UIA_INVOKE,AutomationId=plusButton,,retry=2,Click '+' button
-7,UIA_INVOKE,AutomationId=num5Button,,retry=2,Click '5' button
-8,UIA_INVOKE,AutomationId=equalButton,,retry=2;critical=true,Click '=' button to compute 7 + 5 = 12
-9,SET_VAR,expected_sum,12,,Store expected sum in variable
-10,ASSERT_VAR,expected_sum,12,,Verify expected_sum variable equals 12
-11,LOG,Calculator Test Complete,7 + 5 = ${expected_sum},,Write completion entry to Test Run Log
-
+1,AUT,calc.exe,,,Reserved: Set Application Under Test (AUT) location directly in test (overrides queue set)
+2,COMMAND,,"self_healing, highlight=""1"", video=""external store from config loc"", args=""--standard""",,Reserved: Comma-separated command list for app config / arguments / framework attributes
+3,RA,,1,,Reserved: Reuse App (RA) at beginning of test (1=reuse running instance, 0=fresh, config=from config)
+4,KAO,,1,,Reserved: Keep App Open (KAO) between tests (1=keep open, 0=close after test, config=from config)
+5,WAIT,,700,,Allow Calculator main window to render
+6,HIGHLIGHT,"@button_1,@button_2,@button_3",#F59E0B|250|3,,Outline controls using Win32 GDI pen before clicking
+7,UIA_INVOKE,AutomationId=num7Button,,retry=2,Click '7' via UIA InvokePattern (or fallback to Win32 click)
+8,UIA_INVOKE,AutomationId=plusButton,,retry=2,Click '+' button
+9,UIA_INVOKE,AutomationId=num5Button,,retry=2,Click '5' button
+10,UIA_INVOKE,AutomationId=equalButton,,retry=2;critical=true,Click '=' button to compute 7 + 5 = 12
+11,SET_VAR,expected_sum,12,,Store expected sum in variable
+12,ASSERT_VAR,expected_sum,12,,Verify expected_sum variable equals 12
+13,LOG,Calculator Test Complete,7 + 5 = ${expected_sum} | Video=${video} | RA=${ra} | KAO=${kao},,Write completion entry to Test Run Log

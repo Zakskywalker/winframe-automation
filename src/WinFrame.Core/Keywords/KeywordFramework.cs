@@ -89,23 +89,33 @@ public class KeywordFramework
             Notify($"Running test '{test.Name}' (attempt {testAttempt}/{maxTestAttempts})...");
             foreach (var l in Listeners) SafeInvoke(() => l.OnTestStarted(test, result));
 
-            var ctx = new KeywordContext(Controls, Config, bed)
+            var ctx = new KeywordContext(Controls, Config, bed?.Clone())
             {
                 RecordOpenCvSnapshots = recordOpenCvSnapshots || Config.CaptureControlImagesDuringRun
             };
             foreach (var kv in test.Variables) ctx.Variables[kv.Key] = kv.Value;
 
-            // If a TestBed is configured and StartIfNotRunning is true, harness it automatically
-            if (bed != null && bed.StartIfNotRunning)
+            // Pre-scan any leading reserved header steps (AUT, COMMAND, RA, KAO) so RA and COMMAND
+            // are known before the first AUT or default TestBed harness runs.
+            PreApplyHeaderOverrides(test, ctx);
+
+            bool hasExplicitAutStep = test.Steps.Any(s =>
+                s.Action.Equals("AUT", StringComparison.OrdinalIgnoreCase) ||
+                s.Action.Equals("SET_AUT", StringComparison.OrdinalIgnoreCase) ||
+                s.Action.Equals("APP_UNDER_TEST", StringComparison.OrdinalIgnoreCase));
+
+            // If no explicit AUT step is in the test and a TestBed is configured with StartIfNotRunning,
+            // harness it at the start of the test honoring EffectiveReuseApp (RA).
+            if (!hasExplicitAutStep && ctx.TestBed != null && ctx.TestBed.StartIfNotRunning)
             {
                 try
                 {
-                    var app = ProcessManagementEngine.Shared.Harness(bed);
+                    var app = ProcessManagementEngine.Shared.Harness(ctx.TestBed, reuseExisting: ctx.EffectiveReuseApp);
                     ctx.CurrentWindowHwnd = app.MainWindowHandle;
                 }
                 catch (Exception ex)
                 {
-                    SystemLogger.Test($"TestBed '{bed.Name}' harness warning: {ex.Message}", SystemLogger.LogLevel.WARNING);
+                    SystemLogger.Test($"TestBed '{ctx.TestBed.Name}' harness warning: {ex.Message}", SystemLogger.LogLevel.WARNING);
                 }
             }
 
@@ -178,12 +188,14 @@ public class KeywordFramework
                     }
                 }
 
-                if (Config.StepDelayMs > 0) Thread.Sleep(Config.StepDelayMs);
+                int delayMs = ctx.StepDelayOverrideMs ?? Config.StepDelayMs;
+                if (delayMs > 0) Thread.Sleep(delayMs);
             }
 
             if (retryWholeTest) continue;
 
             foreach (var kv in ctx.Variables) result.OutputVariables[kv.Key] = kv.Value;
+            if (ctx.TestBed != null) result.TestBed = ctx.TestBed.Name;
 
             if (result.Status == TestStatus.Running)
             {
@@ -197,9 +209,12 @@ public class KeywordFramework
                 SafeInvoke(() => Controls.Save());
             }
 
-            if (bed is { CloseAfterRun: true })
+            // Honor KAO (Keep App Open) between tests: when EffectiveKeepAppOpen is false, close the AUT.
+            if (!ctx.EffectiveKeepAppOpen)
             {
-                ProcessManagementEngine.Shared.Stop(bed.Name);
+                string? appKey = ctx.TestBed?.Name ?? ProcessManagementEngine.Shared.ActiveKey;
+                SystemLogger.Test($"[KAO] KeepAppOpen is false -> closing application '{appKey ?? "Active"}' at end of test.");
+                ProcessManagementEngine.Shared.Stop(appKey);
             }
 
             break;
@@ -319,7 +334,7 @@ public class KeywordFramework
     {
         int maxRetries = step.RetryCount
             ?? (policy.OnStepFailure == FailureAction.RetryStep ? Math.Max(0, policy.StepRetryCount) : 0);
-        int timeoutMs = step.TimeoutMs ?? policy.StepTimeoutMs;
+        int timeoutMs = step.TimeoutMs ?? ctx.StepTimeoutOverrideMs ?? policy.StepTimeoutMs;
 
         StepResult last = new() { Index = step.Index, Action = step.Action, Target = step.Target, Value = step.Value };
 
@@ -474,6 +489,32 @@ public class KeywordFramework
             OpenCvAutomation.RecordControlSnapshot(ctx.Controls, def, ctx.CurrentWindowHwnd, el);
         }
         catch { }
+    }
+
+    private static void PreApplyHeaderOverrides(TestCase test, KeywordContext ctx)
+    {
+        foreach (var step in test.Steps)
+        {
+            if (!TestHeaderCommands.IsReservedHeaderKeyword(step.Action))
+                break;
+
+            string act = step.Action.Trim().ToUpperInvariant();
+            string target = ctx.Expand(step.Target);
+            string val = ctx.Expand(step.Value);
+
+            if (act is "RA" or "REUSE_APP")
+            {
+                TestHeaderCommands.KeywordReuseApp(ctx, target, val);
+            }
+            else if (act is "KAO" or "KEEP_APP_OPEN")
+            {
+                TestHeaderCommands.KeywordKeepAppOpen(ctx, target, val);
+            }
+            else if (act is "COMMAND" or "CMD" or "COMMANDS")
+            {
+                TestHeaderCommands.KeywordCommand(ctx, target, val);
+            }
+        }
     }
 
     private void Notify(string message)

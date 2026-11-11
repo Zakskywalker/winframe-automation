@@ -111,6 +111,8 @@ public static class Win32Highlighter
 
     public static bool IsNonControlAction(string action) =>
         action.ToUpperInvariant() is "SET_VAR" or "ASSERT_VAR" or "CHECK_VAR" or "LOG" or "WAIT" or "SLEEP"
+            or "AUT" or "SET_AUT" or "APP_UNDER_TEST" or "COMMAND" or "CMD" or "COMMANDS"
+            or "RA" or "REUSE_APP" or "KAO" or "KEEP_APP_OPEN"
             or "HIGHLIGHT" or "WIN32_HIGHLIGHT" or "OUTLINE_CONTROL" or "HIGHLIGHT_CONTROLS"
             or "CV_SNAPSHOT_SCREEN" or "SNAPSHOT_SCREEN" or "SCREENSHOT";
 

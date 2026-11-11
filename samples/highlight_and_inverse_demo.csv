@@ -1,11 +1,11 @@
 Action,Target,Value,Options,Description
-SET_VAR,highlight,1,,Enable Win32 GDI outline highlighting for all steps
-SET_VAR,highlight_color,#F59E0B,,Set outline color to Hand of Glory gold
-SET_VAR,highlight_interval,250,,Set short outline interval (ms)
+AUT,Calculator,,,Reserved: Set Application Under Test (AUT) location directly in test
+COMMAND,,"self_healing, highlight=""1"", highlight_color=""#F59E0B"", highlight_interval=""250"", video=""external store from config loc""",,Reserved: Comma-separated command list for app config & test attributes
+RA,,1,,Reserved: Reuse App (RA) at beginning of test (1=reuse, 0=fresh, config=from config)
+KAO,,1,,Reserved: Keep App Open (KAO) between tests (1=keep open, 0=close after test, config=from config)
 SET_VAR,step1_var,Alpha,,Forward step 1 variable
 SET_VAR,step2_var,Beta,,Forward step 2 variable
 SET_VAR,step3_var,Gamma,,Forward step 3 variable
 ASSERT_VAR,step3_var,Gamma,,Verify step 3 variable
-HIGHLIGHT,@num8Button,#00FF88|200|3,Special HIGHLIGHT keyword referencing Win32Highlighter
-LOG,Sample Sheet Complete,${step1_var}-${step2_var}-${step3_var},,Log completion to Test channel
-
+HIGHLIGHT,@num8Button,#00FF88|200|3,,Special HIGHLIGHT keyword referencing Win32Highlighter
+LOG,Sample Sheet Complete,${step1_var}-${step2_var}-${step3_var} (Video=${video} RA=${ra} KAO=${kao}),,Log completion to Test channel

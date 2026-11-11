@@ -9,14 +9,38 @@
     "Steps": [
       {
         "Index": 1,
-        "Action": "SET_VAR",
-        "Target": "highlight",
-        "Value": "1",
+        "Action": "AUT",
+        "Target": "calc.exe",
+        "Value": "",
         "Options": {},
-        "Description": "Enable Win32 GDI outline highlighting"
+        "Description": "Reserved: Set Application Under Test (AUT) location directly in test"
       },
       {
         "Index": 2,
+        "Action": "COMMAND",
+        "Target": "",
+        "Value": "self_healing, highlight=\"1\", video=\"external store from config loc\", args=\"--mode=test,fast\"",
+        "Options": {},
+        "Description": "Reserved: Comma-separated command list for app config, app arguments, and test attributes"
+      },
+      {
+        "Index": 3,
+        "Action": "RA",
+        "Target": "",
+        "Value": "1",
+        "Options": {},
+        "Description": "Reserved: Reuse App (RA) at beginning of test"
+      },
+      {
+        "Index": 4,
+        "Action": "KAO",
+        "Target": "",
+        "Value": "1",
+        "Options": {},
+        "Description": "Reserved: Keep App Open (KAO) between tests"
+      },
+      {
+        "Index": 5,
         "Action": "HIGHLIGHT",
         "Target": "@button_1,@button_2",
         "Value": "#F59E0B|250|3",
@@ -24,7 +48,7 @@
         "Description": "Outline Calculator buttons using Win32 GDI pen"
       },
       {
-        "Index": 3,
+        "Index": 6,
         "Action": "UIA_INVOKE",
         "Target": "@button_1",
         "Value": "120|220",
@@ -34,7 +58,7 @@
         "Description": "Click button_1 (WinRel: 120,220)"
       },
       {
-        "Index": 4,
+        "Index": 7,
         "Action": "UIA_INVOKE",
         "Target": "@button_2",
         "Value": "200|220",
@@ -44,7 +68,7 @@
         "Description": "Click button_2 (WinRel: 200,220)"
       },
       {
-        "Index": 5,
+        "Index": 8,
         "Action": "ASSERT_VAR",
         "Target": "expected",
         "Value": "15",
@@ -65,6 +89,38 @@
     "Steps": [
       {
         "Index": 1,
+        "Action": "AUT",
+        "Target": "Calculator",
+        "Value": "",
+        "Options": {},
+        "Description": "Reserved: Set Application Under Test (AUT) location directly in test"
+      },
+      {
+        "Index": 2,
+        "Action": "COMMAND",
+        "Target": "",
+        "Value": "self_healing=\"uia,opencv\", video=\"external store from config loc\"",
+        "Options": {},
+        "Description": "Reserved: Comma-separated command list"
+      },
+      {
+        "Index": 3,
+        "Action": "RA",
+        "Target": "",
+        "Value": "config",
+        "Options": {},
+        "Description": "Reserved: Reuse App (RA) at beginning of test (from config)"
+      },
+      {
+        "Index": 4,
+        "Action": "KAO",
+        "Target": "",
+        "Value": "config",
+        "Options": {},
+        "Description": "Reserved: Keep App Open (KAO) between tests (from config)"
+      },
+      {
+        "Index": 5,
         "Action": "SET_VAR",
         "Target": "mode",
         "Value": "configured",
@@ -72,7 +128,7 @@
         "Description": "Set mode variable (inverse restores previous value)"
       },
       {
-        "Index": 2,
+        "Index": 6,
         "Action": "UIA_TOGGLE",
         "Target": "@checkbox_1",
         "Value": "On",
@@ -82,7 +138,7 @@
         "Description": "Toggle checkbox_1 On (inverse automatically toggles Off)"
       },
       {
-        "Index": 3,
+        "Index": 7,
         "Action": "LOG",
         "Target": "JSON Suite",
         "Value": "Completed Checkbox_Toggle_And_Inverse_JSON in mode=${mode}",
@@ -92,4 +148,3 @@
     ]
   }
 ]
-

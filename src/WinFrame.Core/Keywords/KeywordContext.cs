@@ -32,10 +32,15 @@ public sealed class KeywordContext
         Variables["highlight"] = Config.Highlight ?? "";
         Variables["highlight_color"] = Config.HighlightColor;
         Variables["highlight_interval"] = Config.HighlightIntervalMs.ToString();
+        Variables["ra"] = Config.ReuseApp ? "1" : "0";
+        Variables["kao"] = Config.KeepAppOpen ? "1" : "0";
+        Variables["video_store"] = Config.VideoStorageLocation;
 
         if (testBed != null)
         {
             foreach (var kv in testBed.Variables) Variables[kv.Key] = kv.Value;
+            Variables["aut"] = testBed.ApplicationPath;
+            Variables["testbed"] = testBed.Name;
             if (testBed.Credentials != null)
             {
                 Variables["username"] = testBed.Credentials.Username;
@@ -49,6 +54,50 @@ public sealed class KeywordContext
     public ControlRepository Controls { get; }
     public TestBedConfig? TestBed { get; set; }
     public Dictionary<string, string> Variables { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    // ---- Application Command Structure State (AUT, COMMAND, RA, KAO) ----
+
+    /// <summary>Application Under Test location set by the reserved <c>AUT</c> keyword in the test header.</summary>
+    public string? AutOverride { get; set; }
+
+    /// <summary>Application launch arguments set by <c>AUT</c> or <c>COMMAND</c> (<c>args="x,x"</c>).</summary>
+    public string? AppArgumentsOverride { get; set; }
+
+    /// <summary>Working directory override set by <c>COMMAND</c> (<c>workdir="..."</c>).</summary>
+    public string? WorkingDirectoryOverride { get; set; }
+
+    /// <summary>Explicit Reuse App (<c>RA</c>) setting from the test header, or null if using Config default.</summary>
+    public bool? ReuseApp { get; set; }
+
+    /// <summary>Effective Reuse App (<c>RA</c>) value: test header override -> TestBed -> AppConfig.ReuseApp.</summary>
+    public bool EffectiveReuseApp => ReuseApp ?? TestBed?.ReuseApp ?? Config.ReuseApp;
+
+    /// <summary>Explicit Keep App Open (<c>KAO</c>) setting from the test header, or null if using Config default.</summary>
+    public bool? KeepAppOpen { get; set; }
+
+    /// <summary>Effective Keep App Open (<c>KAO</c>) value: test header override -> TestBed -> AppConfig.KeepAppOpen.</summary>
+    public bool EffectiveKeepAppOpen => KeepAppOpen ?? (TestBed != null ? TestBed.KeepAppOpen && !TestBed.CloseAfterRun : Config.KeepAppOpen);
+
+    /// <summary>Parsed commands applied by the reserved <c>COMMAND</c> header keyword for this test run.</summary>
+    public Dictionary<string, string> ActiveCommands { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>True when <c>self_healing</c> command was enabled for this test via <c>COMMAND</c>.</summary>
+    public bool SelfHealingEnabled { get; set; } = true;
+
+    /// <summary>Strategy or arguments configured via <c>self_healing</c> command (e.g. <c>"uia,opencv,win32"</c>).</summary>
+    public string SelfHealingStrategy { get; set; } = "uia,opencv,win32";
+
+    /// <summary>Video recording configuration set via <c>COMMAND</c> (e.g. <c>video="external store from config loc"</c>).</summary>
+    public string? VideoRecordingSetting { get; set; }
+
+    /// <summary>Optional per-test step timeout override set via <c>COMMAND</c> (<c>timeout=...</c>).</summary>
+    public int? StepTimeoutOverrideMs { get; set; }
+
+    /// <summary>Optional per-test step delay override set via <c>COMMAND</c> (<c>delay=...</c>).</summary>
+    public int? StepDelayOverrideMs { get; set; }
+
+    /// <summary>Whether executing the <c>AUT</c> keyword should immediately launch/attach the application (default true).</summary>
+    public bool AutoHarnessOnAutKeyword { get; set; } = true;
 
     /// <summary>Active window handle under test (updated by START_APP / ATTACH_APP / REHARNESS).</summary>
     public IntPtr CurrentWindowHwnd { get; set; }

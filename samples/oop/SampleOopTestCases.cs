@@ -36,29 +36,38 @@ public sealed class SampleLoginScreen : ScreenObject
 }
 
 /// <summary>
-/// Example 2: Strongly-typed OOP Test Case (<see cref="TestBase"/>) with lifecycle hooks,
+/// Example 2: Strongly-typed OOP Test Case (<see cref="TestBase"/>) starting with the reserved
+/// framework header keywords (<c>AUT</c>, <c>COMMAND</c>, <c>RA</c>, <c>KAO</c>), followed by
 /// fluent step builders, lambda steps, and automatic step-queue / inverse support.
 /// </summary>
 public sealed class SampleCalculatorAndRollbackOopTest : TestBase
 {
     public SampleCalculatorAndRollbackOopTest()
-        : base("Sample_Calculator_And_Rollback_OOP", testBed: "Calculator")
+        : base("Sample_Calculator_And_Rollback_OOP")
     {
+        TestBed = "Calculator";
         Variables["highlight"] = "1";
 
-        AddStep("SET_VAR", "calc_state", "ready", "Initialize calculator state variable");
-        AddStep("HIGHLIGHT", "@button_1,@button_2", "#F59E0B|220|3", "Outline buttons with Win32 GDI pen");
-        AddStep("SET_VAR", "accumulator", "10", "Set accumulator to 10");
+        // Reserved Framework Header Section (AUT, COMMAND, RA, KAO)
+        SetAut("calc.exe", "", "Reserved: Set Application Under Test (AUT) location directly in test")
+            .WithCommand("self_healing, highlight=\"1\", video=\"external store from config loc\", args=\"--mode=test,fast\"", "Reserved: Comma-separated command list")
+            .WithReuseApp(true, "Reserved: Reuse App (RA) at beginning of test")
+            .WithKeepAppOpen(true, "Reserved: Keep App Open (KAO) between tests");
+
+        // Test Body Steps
+        AddStep("SET_VAR", "calc_state", "ready", "", "Initialize calculator state variable");
+        AddStep("HIGHLIGHT", "@button_1,@button_2", "#F59E0B|220|3", "", "Outline buttons with Win32 GDI pen");
+        AddStep("SET_VAR", "accumulator", "10", "", "Set accumulator to 10");
 
         AddLambdaStep("OOP_COMPUTE_TRIPLE", ctx =>
         {
             int current = int.Parse(ctx.Variables["accumulator"]);
             int tripled = current * 3;
             ctx.Variables["accumulator"] = tripled.ToString();
-            return StepResult.Pass(4, "OOP_COMPUTE_TRIPLE", "accumulator", tripled.ToString(), $"Tripled {current} -> {tripled}");
+            return StepResult.Pass(Steps.Count, "OOP_COMPUTE_TRIPLE", "accumulator", tripled.ToString(), $"Tripled {current} -> {tripled}");
         });
 
-        AddStep("ASSERT_VAR", "accumulator", "30", "Verify accumulator equals 30");
+        AddStep("ASSERT_VAR", "accumulator", "30", "", "Verify accumulator equals 30");
     }
 
     public override void OnBeforeTest(KeywordContext context)
@@ -71,4 +80,3 @@ public sealed class SampleCalculatorAndRollbackOopTest : TestBase
         context.Variables["final_status"] = result.Status.ToString();
     }
 }
-
