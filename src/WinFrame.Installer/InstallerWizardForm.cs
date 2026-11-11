@@ -288,8 +288,8 @@ public sealed class InstallerWizardForm : Form
         string[] candidateDirs =
         {
             AppContext.BaseDirectory,
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "WinFrame.App", "bin", "Release", "net10.0-windows", "win-x64")),
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "WinFrame.App", "bin", "Debug", "net10.0-windows", "win-x64")),
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "WinFrame.App", "bin", "out", "Release", "net10.0-windows", "win-x64")),
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "WinFrame.App", "bin", "out", "Debug", "net10.0-windows", "win-x64")),
             Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "publish", "win11-x64"))
         };
 

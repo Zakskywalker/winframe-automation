@@ -10,3 +10,4 @@ Index,Action,Target,Value,Options,Description
 9,SET_VAR,expected_sum,12,,Store expected sum in variable
 10,ASSERT_VAR,expected_sum,12,,Verify expected_sum variable equals 12
 11,LOG,Calculator Test Complete,7 + 5 = ${expected_sum},,Write completion entry to Test Run Log
+

@@ -3,3 +3,4 @@ button_1,num7Button,Seven,Button,Button,Calculator,"120,340,76,52","20,240,76,52
 button_2,plusButton,Plus,Button,Button,Calculator,"360,400,76,52","260,300,76,52",298,326,38,26,93,,
 edit_1,RichEditD2DPT,Text Editor,RichEditD2DPT,Document,Untitled - Notepad,"100,140,800,500","0,40,800,500",240,180,240,140,15,,
 checkbox_1,chkRememberMe,Remember Me,Button,CheckBox,WinFrame Sample Form,"150,260,140,24","30,120,140,24",45,132,15,12,204,,
+

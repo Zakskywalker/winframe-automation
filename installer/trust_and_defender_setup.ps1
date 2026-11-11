@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Self-signs WinFrame binaries with a local Hand of Glory Authenticode certificate
     and optionally adds the workspace / install folder to Windows Defender exclusions.
@@ -61,3 +61,4 @@ if ($SignBinaries) {
 }
 
 Write-Host "`nDone!" -ForegroundColor Green
+

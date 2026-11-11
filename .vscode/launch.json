@@ -6,7 +6,7 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build-winframe",
-      "program": "${workspaceFolder}/src/WinFrame.App/bin/Debug/net10.0-windows/win-x64/WinFrame.App.exe",
+      "program": "${workspaceFolder}/src/WinFrame.App/bin/out/Debug/net10.0-windows/win-x64/WinFrame.App.exe",
       "args": [],
       "cwd": "${workspaceFolder}",
       "stopAtEntry": false,
@@ -17,7 +17,7 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build-winframe",
-      "program": "${workspaceFolder}/src/WinFrame.Cli/bin/Debug/net10.0-windows/win-x64/WinFrame.Cli.exe",
+      "program": "${workspaceFolder}/src/WinFrame.Cli/bin/out/Debug/net10.0-windows/win-x64/WinFrame.Cli.exe",
       "args": [
         "run",
         "${workspaceFolder}/samples/highlight_and_inverse_demo.csv"
@@ -31,7 +31,7 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build-winframe",
-      "program": "${workspaceFolder}/src/WinFrame.Cli/bin/Debug/net10.0-windows/win-x64/WinFrame.Cli.exe",
+      "program": "${workspaceFolder}/src/WinFrame.Cli/bin/out/Debug/net10.0-windows/win-x64/WinFrame.Cli.exe",
       "args": [
         "range",
         "${workspaceFolder}/samples/highlight_and_inverse_demo.csv",
@@ -46,7 +46,7 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build-winframe",
-      "program": "${workspaceFolder}/src/WinFrame.Service/bin/Debug/net10.0-windows/win-x64/WinFrame.Service.exe",
+      "program": "${workspaceFolder}/src/WinFrame.Service/bin/out/Debug/net10.0-windows/win-x64/WinFrame.Service.exe",
       "args": [
         "http://localhost:5880/"
       ],
@@ -59,7 +59,7 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build-winframe",
-      "program": "${workspaceFolder}/src/WinFrame.Installer/bin/Debug/net10.0-windows/win-x64/WinFrame.Installer.exe",
+      "program": "${workspaceFolder}/src/WinFrame.Installer/bin/out/Debug/net10.0-windows/win-x64/WinFrame.Installer.exe",
       "args": [],
       "cwd": "${workspaceFolder}",
       "stopAtEntry": false,

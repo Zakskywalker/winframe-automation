@@ -9,3 +9,4 @@ Index,Action,Target,Value,Options,Description
 8,TYPE,@edit_1,Recorded with Mouse Scrape + Window-to-Control Position,,Type second line of text
 9,ASSERT_VAR,doc_title,HandOfGlory_Notes,,Verify variable state before optional inverse rollback
 10,LOG,Notepad Typing Test,Completed keyboard input for ${doc_title},,Log result
+

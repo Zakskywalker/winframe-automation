@@ -6,3 +6,4 @@ Index,Action,Target,Value,Options,Description
 5,CV_VERIFY_IMAGE,@button_1,0.80,retry=2,Verify @button_1 matches its stored OpenCV template at >= 0.80 confidence
 6,SET_VAR,highlight,0,,Disable Win32 highlighting (0 / empty turns highlighting off)
 7,LOG,Vision & Coords Complete,Verified Window-to-Control position and OpenCV template,,Log completion
+

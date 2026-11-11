@@ -56,8 +56,8 @@ jobs:
             Copy-Item "$env:GITHUB_WORKSPACE\installer_pub\WinFrame.Installer.exe" "$publishDir\WinFrame.Installer.exe" -Force
           }
 
-          if (Test-Path "src/WinFrame.Core/bin/Release/net10.0-windows/win-x64/WinFrame.Core.dll") {
-            Copy-Item "src/WinFrame.Core/bin/Release/net10.0-windows/win-x64/WinFrame.Core.dll" "$publishDir\WinFrame.Core.dll" -Force
+          if (Test-Path "src/WinFrame.Core/bin/out/Release/net10.0-windows/win-x64/WinFrame.Core.dll") {
+            Copy-Item "src/WinFrame.Core/bin/out/Release/net10.0-windows/win-x64/WinFrame.Core.dll" "$publishDir\WinFrame.Core.dll" -Force
           }
 
           Copy-Item .github/pages/index.html "$publishDir\index.html" -Force
