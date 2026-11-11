@@ -1,0 +1,18 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.nupkg
+publish/
+artifacts/
+TestResults/
+
+## WinFrame runtime output
+logs/
+reports/
+snapshots/
+*.log
+appsettings.local.json
+config/credentials.json
