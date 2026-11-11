@@ -478,6 +478,14 @@ public sealed class MainForm : Form
             recorder.IgnoredWindowHwnds.Remove(Handle);
         }
 
+        // Prepend reserved framework header keywords (AUT, COMMAND, RA, KAO) for standard test structure
+        string defaultBed = cmbTestBed.SelectedItem?.ToString() ?? recorded.TestBed ?? "Calculator";
+        recorded.EnsureReservedHeader(
+            aut: defaultBed,
+            commandList: "self_healing, highlight=\"1\"",
+            reuseApp: "config",
+            keepAppOpen: "config");
+
         // Stage 2 & 3: Present Test Case Layout Editor (Add/Move/Delete steps) -> Custom Save & TestBed Dialog
         using (var editor = new RecordedTestEditorDialog(recorded, repo, cfg))
         {
