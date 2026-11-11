@@ -361,7 +361,7 @@ public class KeywordFramework
         {
             // When highlight=1/true in config or test variables, draw Win32 GDI outline around Target control
             if (ctx.IsHighlightEnabled && !string.IsNullOrWhiteSpace(sr.Target) &&
-                !Win32Highlighter.IsNonControlAction(step.Action))
+                !Native.Win32Highlighter.IsNonControlAction(step.Action))
             {
                 Native.Win32Highlighter.HighlightTargetIfEnabled(ctx, sr.Target);
             }
