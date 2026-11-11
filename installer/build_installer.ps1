@@ -26,3 +26,4 @@ Copy-Item "$root\README.md" "$publishDir\README.md" -Force
 Copy-Item "$scriptDir\install_windows11.ps1" "$publishDir\Install.ps1" -Force
 
 Write-Host "Distribution bundle created at: $publishDir and $root\dist\WinFrame.Installer.exe" -ForegroundColor Green
+

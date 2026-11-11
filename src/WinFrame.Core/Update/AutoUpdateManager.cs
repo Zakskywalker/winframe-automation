@@ -15,8 +15,8 @@ public sealed record UpdateManifest(
 
 /// <summary>
 /// Auto-Updater for WinFrame Automation.
-/// Supports both ClickOnce foreground updates (from GitHub Pages <c>setup.exe</c> / <c>.application</c> manifest)
-/// and standalone self-update checks against <c>version.json</c> hosted on GitHub Pages.
+/// Checks <c>version.json</c> hosted on GitHub Pages and launches the ClickOnce / GitHub Pages
+/// update URL via the Windows Shell (avoiding raw temp-EXE dropper patterns that trigger AV heuristics).
 /// </summary>
 public static class AutoUpdateManager
 {
@@ -52,24 +52,25 @@ public static class AutoUpdateManager
         }
     }
 
-    /// <summary>Downloads and launches the latest <c>setup.exe</c> or <c>WinFrame.Installer.exe</c> from GitHub Pages.</summary>
-    public static async Task<bool> DownloadAndRunInstallerAsync(string? installerUrl = null)
+    /// <summary>Opens the ClickOnce / GitHub Pages update URL via the system shell / browser.</summary>
+    public static Task<bool> LaunchUpdateUrlAsync(string? installerUrl = null)
     {
         try
         {
-            string url = string.IsNullOrWhiteSpace(installerUrl) ? DefaultSetupUrl : installerUrl;
-            string tempExe = Path.Combine(Path.GetTempPath(), $"WinFrame_Update_{DateTime.Now:yyyyMMdd_HHmmss}.exe");
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
-            byte[] bytes = await http.GetByteArrayAsync(url).ConfigureAwait(false);
-            await File.WriteAllBytesAsync(tempExe, bytes).ConfigureAwait(false);
+            string url = string.IsNullOrWhiteSpace(installerUrl) ? DefaultPagesBaseUrl : installerUrl;
+            if (!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) &&
+                !url.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+            {
+                return Task.FromResult(false);
+            }
 
-            Process.Start(new ProcessStartInfo(tempExe) { UseShellExecute = true });
-            return true;
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
-            SystemLogger.Log($"AutoUpdate download failed: {ex.Message}", SystemLogger.LogLevel.WARNING);
-            return false;
+            SystemLogger.Log($"AutoUpdate launch failed: {ex.Message}", SystemLogger.LogLevel.WARNING);
+            return Task.FromResult(false);
         }
     }
 

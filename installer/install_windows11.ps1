@@ -74,3 +74,4 @@ Set-ItemProperty -Path $uninstallRegKey -Name "NoRepair" -Value 1
 
 Write-Host ""
 Write-Host "SUCCESS: WinFrame Automation 1.0 has been installed for Windows 11!" -ForegroundColor Green
+

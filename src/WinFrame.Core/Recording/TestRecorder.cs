@@ -1,6 +1,6 @@
-using System.Diagnostics;
-using System.Runtime.InteropServices;
+using System.Drawing;
 using System.Text;
+using System.Windows.Automation;
 using System.Windows.Forms;
 using WinFrame.Core.Config;
 using WinFrame.Core.Controls;
@@ -13,39 +13,67 @@ using WinFrame.Core.Vision;
 namespace WinFrame.Core.Recording;
 
 /// <summary>
+/// Live summary of the control currently under the mouse cursor, combining
+/// UIA Mouse-Point Scrape (<see cref="UiaAutomation.ElementFromPoint"/>) and
+/// Win32 Window-to-Control Position (<see cref="ScreenLocationManager.GetWindowToControlPosition"/>).
+/// </summary>
+public sealed record HoveredControlInfo(
+    string SuggestedName,
+    string ControlType,
+    string AutomationId,
+    string UiaName,
+    string WindowTitle,
+    Point ScreenPoint,
+    Point WindowRelativePoint,
+    Point ControlRelativePoint,
+    Rectangle ControlRelativeBounds,
+    IntPtr RootWindowHwnd,
+    IntPtr ControlHwnd);
+
+/// <summary>
 /// Live Test Recorder &amp; Control Scraper ("Create Tests" pipeline).
-/// <list type="bullet">
-/// <item>Scrapes a target window's controls into a mock table for preview/renaming on the accessory panel,
-/// defaulting to <c>ctrltype_x</c> (<c>button_1</c>, <c>edit_2</c>, ...) when the user skips manual naming.</item>
-/// <item>Hooks global mouse (<c>WH_MOUSE_LL</c>) and keyboard (<c>WH_KEYBOARD_LL</c>) input to record clicks
-/// and keyboard entry into fields as <see cref="TestStep"/>s.</item>
-/// <item>Optionally captures OpenCV whole-window and individual-control snapshots for each recorded interaction.</item>
+/// <para>
+/// Designed to be <b>Antivirus-safe (no global <c>WH_KEYBOARD_LL</c> / <c>WH_MOUSE_LL</c> keylogger hooks)</b>.
+/// While recording is active, combines:
+/// <list type="number">
+/// <item><b>Mouse-Position Scrape</b> (<see cref="UiaAutomation.ElementFromPoint"/>) to harvest UIA patterns, AutomationId, Name, and ControlType.</item>
+/// <item><b>Window-to-Control Position</b> (<see cref="ScreenLocationManager.GetWindowToControlPosition"/>) to resolve the child HWND and relative coordinates inside the target window.</item>
+/// <item><b>Keyboard Data Input Capture</b> via focused UIA/Win32 control value tracking plus edge-triggered key state sampling while the target app is active.</item>
 /// </list>
+/// </para>
 /// </summary>
 public sealed class TestRecorder : IDisposable
 {
-    private IntPtr mouseHook = IntPtr.Zero;
-    private IntPtr keyboardHook = IntPtr.Zero;
-    private NativeMethods.LowLevelProc? mouseProc;
-    private NativeMethods.LowLevelProc? keyboardProc;
-
-    private readonly StringBuilder typingBuffer = new();
-    private string? typingTarget;
-    private DateTime lastClickTime = DateTime.MinValue;
-    private NativeMethods.POINT lastClickPoint;
+    private System.Threading.Timer? pollTimer;
+    private readonly object syncLock = new();
     private readonly int ownProcessId = Environment.ProcessId;
+
+    private bool wasLeftDown;
+    private bool wasRightDown;
+    private DateTime lastLeftClickTime = DateTime.MinValue;
+    private Point lastLeftClickPoint;
+    private Point lastHoverPoint;
+
+    private string? activeTargetControl;
+    private IntPtr activeTargetHwnd;
+    private AutomationElement? activeTargetElement;
+    private string lastObservedControlText = "";
 
     public ControlRepository Controls { get; }
     public TestCase CurrentTest { get; private set; }
     public IntPtr TargetWindowHwnd { get; set; }
+    public HashSet<IntPtr> IgnoredWindowHwnds { get; } = new();
     public bool CaptureOpenCvSnapshots { get; set; } = true;
     public bool IsRecording { get; private set; }
 
-    /// <summary>Raised whenever a new <see cref="TestStep"/> is recorded.</summary>
+    /// <summary>Raised whenever a new <see cref="TestStep"/> is recorded or updated.</summary>
     public event Action<TestStep>? StepRecorded;
 
     /// <summary>Raised whenever a control is discovered or updated during scraping/recording.</summary>
     public event Action<ControlDefinition>? ControlScraped;
+
+    /// <summary>Raised during recording when the mouse moves over a control, reporting both UIA scrape &amp; Window-to-Control coordinates.</summary>
+    public event Action<HoveredControlInfo>? HoverControlChanged;
 
     public TestRecorder(ControlRepository controls, string testName = "RecordedTest")
     {
@@ -92,178 +120,276 @@ public sealed class TestRecorder : IDisposable
         return scraped;
     }
 
-    /// <summary>Starts global mouse and keyboard recording hooks.</summary>
+    /// <summary>
+    /// Combines Mouse-Position UIA Scrape (<see cref="UiaAutomation.ElementFromPoint"/>) and
+    /// Window-to-Control Position (<see cref="ScreenLocationManager.GetWindowToControlPosition"/>)
+    /// at the specified screen coordinates, registering or updating the control in <see cref="Controls"/>.
+    /// </summary>
+    public (ControlDefinition Control, HoveredControlInfo HoverInfo, AutomationElement? Element) ScrapeControlAtMouseAndWindowPosition(
+        int screenX,
+        int screenY,
+        bool commitToRepository = true)
+    {
+        var winPos = ScreenLocationManager.GetWindowToControlPosition(IntPtr.Zero, screenX, screenY);
+        var el = UiaAutomation.ElementFromPoint(screenX, screenY);
+
+        Dictionary<string, string> attrs;
+        if (el != null)
+        {
+            attrs = UiaAutomation.ExtractAttributes(el, windowTitle: winPos.WindowTitle);
+        }
+        else
+        {
+            attrs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [ControlDefinition.Keys.Name] = winPos.ControlText,
+                [ControlDefinition.Keys.ClassName] = winPos.ControlClassName,
+                [ControlDefinition.Keys.ControlType] = string.IsNullOrWhiteSpace(winPos.ControlClassName) ? "Custom" : winPos.ControlClassName,
+                [ControlDefinition.Keys.WindowTitle] = winPos.WindowTitle,
+                [ControlDefinition.Keys.NativeWindowHandle] = $"0x{winPos.ControlHwnd.ToInt64():X}",
+                [ControlDefinition.Keys.BoundingRectangle] = winPos.ControlScreenRect.ToString()
+            };
+        }
+
+        // Enrich with Window-to-Control relative position metadata from ScreenLocationManager
+        attrs[ControlDefinition.Keys.RelativeBounds] =
+            $"{winPos.ControlRelativeBounds.Left},{winPos.ControlRelativeBounds.Top},{winPos.ControlRelativeBounds.Width},{winPos.ControlRelativeBounds.Height}";
+        attrs["Win32.WindowRelX"] = winPos.WindowRelativePoint.X.ToString();
+        attrs["Win32.WindowRelY"] = winPos.WindowRelativePoint.Y.ToString();
+        attrs["Win32.ControlRelX"] = winPos.ControlRelativePoint.X.ToString();
+        attrs["Win32.ControlRelY"] = winPos.ControlRelativePoint.Y.ToString();
+        attrs["Win32.CtrlId"] = winPos.ControlId.ToString();
+        if (!string.IsNullOrWhiteSpace(winPos.ControlClassName) && !attrs.ContainsKey(ControlDefinition.Keys.ClassName))
+            attrs[ControlDefinition.Keys.ClassName] = winPos.ControlClassName;
+
+        var existing = Controls.FindMatch(attrs);
+        ControlDefinition def;
+        if (existing != null)
+        {
+            foreach (var kv in attrs) existing.Attributes[kv.Key] = kv.Value;
+            def = existing;
+        }
+        else
+        {
+            string ctype = attrs.GetValueOrDefault(ControlDefinition.Keys.ControlType, "control");
+            string name = Controls.GenerateDefaultName(ctype);
+            def = new ControlDefinition { Name = name, Attributes = attrs };
+            if (commitToRepository)
+            {
+                Controls.AddOrUpdate(def);
+                if (CaptureOpenCvSnapshots && winPos.RootWindowHwnd != IntPtr.Zero)
+                {
+                    OpenCvAutomation.RecordControlSnapshot(Controls, def, winPos.RootWindowHwnd, el);
+                }
+                ControlScraped?.Invoke(def);
+            }
+        }
+
+        var hover = new HoveredControlInfo(
+            SuggestedName: def.Name,
+            ControlType: def.Get(ControlDefinition.Keys.ControlType),
+            AutomationId: def.Get(ControlDefinition.Keys.AutomationId),
+            UiaName: def.Get(ControlDefinition.Keys.Name),
+            WindowTitle: winPos.WindowTitle,
+            ScreenPoint: new Point(screenX, screenY),
+            WindowRelativePoint: new Point(winPos.WindowRelativePoint.X, winPos.WindowRelativePoint.Y),
+            ControlRelativePoint: new Point(winPos.ControlRelativePoint.X, winPos.ControlRelativePoint.Y),
+            ControlRelativeBounds: winPos.ControlRelativeBounds,
+            RootWindowHwnd: winPos.RootWindowHwnd,
+            ControlHwnd: winPos.ControlHwnd);
+
+        return (def, hover, el);
+    }
+
+    /// <summary>Starts recording mouse clicks, window-to-control coordinates, and keyboard data input.</summary>
     public void StartRecording(string? testName = null, IntPtr targetWindowHwnd = default)
     {
         if (IsRecording) return;
-        if (!string.IsNullOrWhiteSpace(testName)) CurrentTest = new TestCase(testName);
+        CurrentTest = new TestCase(string.IsNullOrWhiteSpace(testName) ? $"Recorded_{DateTime.Now:HHmmss}" : testName);
         if (targetWindowHwnd != IntPtr.Zero) TargetWindowHwnd = targetWindowHwnd;
 
-        mouseProc = MouseHookCallback;
-        keyboardProc = KeyboardHookCallback;
-        using var curProcess = Process.GetCurrentProcess();
-        using var curModule = curProcess.MainModule!;
-        IntPtr hMod = NativeMethods.GetModuleHandle(curModule.ModuleName);
+        activeTargetControl = null;
+        activeTargetHwnd = IntPtr.Zero;
+        activeTargetElement = null;
+        lastObservedControlText = "";
+        wasLeftDown = (Control.MouseButtons & MouseButtons.Left) != 0;
+        wasRightDown = (Control.MouseButtons & MouseButtons.Right) != 0;
 
-        mouseHook = NativeMethods.SetWindowsHookEx(NativeMethods.WH_MOUSE_LL, mouseProc, hMod, 0);
-        keyboardHook = NativeMethods.SetWindowsHookEx(NativeMethods.WH_KEYBOARD_LL, keyboardProc, hMod, 0);
         IsRecording = true;
+        pollTimer = new System.Threading.Timer(PollInputCallback, null, 40, 45);
 
-        SystemLogger.User($"Started recording test '{CurrentTest.Name}'.");
+        SystemLogger.User($"Started recording test '{CurrentTest.Name}' (Mouse Scrape + Window-to-Control Position + Keyboard Input).");
     }
 
-    /// <summary>Flushes any pending keyboard buffer and unhooks mouse/keyboard listeners.</summary>
+    /// <summary>Flushes any pending keyboard input and stops recording.</summary>
     public TestCase StopRecording()
     {
         if (!IsRecording) return CurrentTest;
-        FlushTypingBuffer();
-
-        if (mouseHook != IntPtr.Zero) { NativeMethods.UnhookWindowsHookEx(mouseHook); mouseHook = IntPtr.Zero; }
-        if (keyboardHook != IntPtr.Zero) { NativeMethods.UnhookWindowsHookEx(keyboardHook); keyboardHook = IntPtr.Zero; }
         IsRecording = false;
+        pollTimer?.Dispose();
+        pollTimer = null;
+
+        lock (syncLock)
+        {
+            FlushTypingBuffer();
+        }
 
         Controls.Save();
         SystemLogger.User($"Stopped recording test '{CurrentTest.Name}' ({CurrentTest.Steps.Count} steps).");
         return CurrentTest;
     }
 
-    private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    /// <summary>Allows manually appending a step (e.g., from the live Recording Bar or Step Editor).</summary>
+    public TestStep AppendStep(string action, string target, string value, string description)
     {
-        if (nCode >= 0)
+        lock (syncLock)
         {
-            uint msg = (uint)wParam.ToInt64();
-            if (msg is NativeMethods.WM_LBUTTONDOWN or NativeMethods.WM_RBUTTONDOWN)
-            {
-                var hookStruct = Marshal.PtrToStructure<NativeMethods.MSLLHOOKSTRUCT>(lParam);
-                var pt = hookStruct.pt;
-
-                IntPtr hwndAtPt = NativeMethods.WindowFromPoint(pt);
-                if (hwndAtPt != IntPtr.Zero && NativeMethods.GetProcessId(hwndAtPt) != ownProcessId)
-                {
-                    IntPtr rootHwnd = NativeMethods.GetAncestor(hwndAtPt, NativeMethods.GA_ROOT);
-                    if (TargetWindowHwnd == IntPtr.Zero || rootHwnd == TargetWindowHwnd || hwndAtPt == TargetWindowHwnd)
-                    {
-                        FlushTypingBuffer();
-                        bool isDouble = msg == NativeMethods.WM_LBUTTONDOWN &&
-                                        (DateTime.Now - lastClickTime).TotalMilliseconds <= SystemInformation.DoubleClickTime &&
-                                        Math.Abs(pt.X - lastClickPoint.X) <= 4 &&
-                                        Math.Abs(pt.Y - lastClickPoint.Y) <= 4;
-
-                        lastClickTime = DateTime.Now;
-                        lastClickPoint = pt;
-
-                        string action = msg == NativeMethods.WM_RBUTTONDOWN ? "RIGHT_CLICK" : isDouble ? "DOUBLE_CLICK" : "CLICK";
-                        Task.Run(() => RecordMouseAction(action, pt, rootHwnd != IntPtr.Zero ? rootHwnd : hwndAtPt));
-                    }
-                }
-            }
+            var step = CurrentTest.AddStep(action, target, value, "", description);
+            StepRecorded?.Invoke(step);
+            return step;
         }
-        return NativeMethods.CallNextHookEx(mouseHook, nCode, wParam, lParam);
     }
 
-    private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    private void PollInputCallback(object? state)
     {
-        if (nCode >= 0 && ((uint)wParam.ToInt64() == NativeMethods.WM_KEYDOWN))
-        {
-            IntPtr fg = NativeMethods.GetForegroundWindow();
-            if (fg != IntPtr.Zero && NativeMethods.GetProcessId(fg) != ownProcessId)
-            {
-                if (TargetWindowHwnd == IntPtr.Zero || fg == TargetWindowHwnd)
-                {
-                    var kb = Marshal.PtrToStructure<NativeMethods.KBDLLHOOKSTRUCT>(lParam);
-                    var key = (Keys)kb.vkCode;
-
-                    if (key == Keys.Return)
-                    {
-                        FlushTypingBuffer();
-                        AppendStep("SEND_KEYS", typingTarget ?? "", "{ENTER}", "Enter key");
-                    }
-                    else if (key == Keys.Tab)
-                    {
-                        FlushTypingBuffer();
-                        AppendStep("SEND_KEYS", typingTarget ?? "", "{TAB}", "Tab key");
-                    }
-                    else if (key == Keys.Back && typingBuffer.Length > 0)
-                    {
-                        typingBuffer.Length--;
-                    }
-                    else
-                    {
-                        string ch = VkToUnicode(kb.vkCode, kb.scanCode);
-                        if (!string.IsNullOrEmpty(ch) && !char.IsControl(ch[0]))
-                        {
-                            typingBuffer.Append(ch);
-                        }
-                    }
-                }
-            }
-        }
-        return NativeMethods.CallNextHookEx(keyboardHook, nCode, wParam, lParam);
-    }
-
-    private void RecordMouseAction(string action, NativeMethods.POINT pt, IntPtr rootHwnd)
-    {
+        if (!IsRecording) return;
+        if (!Monitor.TryEnter(syncLock)) return;
         try
         {
-            var el = UiaAutomation.ElementFromPoint(pt.X, pt.Y);
-            string controlName;
-            if (el != null)
+            Point pt = Cursor.Position;
+            IntPtr hwndUnderMouse = NativeMethods.WindowFromPoint(new NativeMethods.POINT(pt.X, pt.Y));
+            IntPtr rootUnderMouse = hwndUnderMouse != IntPtr.Zero
+                ? NativeMethods.GetAncestor(hwndUnderMouse, NativeMethods.GA_ROOT)
+                : IntPtr.Zero;
+            if (rootUnderMouse == IntPtr.Zero) rootUnderMouse = hwndUnderMouse;
+
+            bool isOwnWindow = hwndUnderMouse != IntPtr.Zero &&
+                               (NativeMethods.GetProcessId(hwndUnderMouse) == ownProcessId ||
+                                IgnoredWindowHwnds.Contains(rootUnderMouse) ||
+                                IgnoredWindowHwnds.Contains(hwndUnderMouse));
+
+            // 1. Live Hover Preview (every >= 6px cursor move outside WinFrame's own UI)
+            if (!isOwnWindow && (Math.Abs(pt.X - lastHoverPoint.X) >= 6 || Math.Abs(pt.Y - lastHoverPoint.Y) >= 6))
             {
-                var attrs = UiaAutomation.ExtractAttributes(el, windowTitle: NativeMethods.GetWindowTextManaged(rootHwnd));
-                var existing = Controls.FindMatch(attrs);
-                if (existing != null)
+                lastHoverPoint = pt;
+                try
                 {
-                    controlName = existing.Name;
+                    var (_, hover, _) = ScrapeControlAtMouseAndWindowPosition(pt.X, pt.Y, commitToRepository: false);
+                    HoverControlChanged?.Invoke(hover);
                 }
-                else
-                {
-                    string ctype = attrs.GetValueOrDefault(ControlDefinition.Keys.ControlType, "control");
-                    controlName = Controls.GenerateDefaultName(ctype);
-                    var def = new ControlDefinition { Name = controlName, Attributes = attrs };
-                    Controls.AddOrUpdate(def);
-                    if (CaptureOpenCvSnapshots)
-                    {
-                        OpenCvAutomation.RecordControlSnapshot(Controls, def, rootHwnd, el);
-                    }
-                    ControlScraped?.Invoke(def);
-                }
-                typingTarget = "@" + controlName;
-                AppendStep(action, "@" + controlName, "", $"Recorded {action} at ({pt.X},{pt.Y})");
+                catch { }
             }
-            else
+
+            // 2. Mouse Button Edge Detection (Left / Right / Double Click)
+            bool leftDown = (Control.MouseButtons & MouseButtons.Left) != 0;
+            bool rightDown = (Control.MouseButtons & MouseButtons.Right) != 0;
+
+            if (!isOwnWindow)
             {
-                AppendStep("CLICK_POINT", "", $"{pt.X}|{pt.Y}|{(action == "RIGHT_CLICK" ? "RIGHT" : "LEFT")}", $"Coordinate click at ({pt.X},{pt.Y})");
+                if (leftDown && !wasLeftDown)
+                {
+                    FlushTypingBuffer();
+                    bool isDouble = (DateTime.Now - lastLeftClickTime).TotalMilliseconds <= SystemInformation.DoubleClickTime &&
+                                    Math.Abs(pt.X - lastLeftClickPoint.X) <= 5 &&
+                                    Math.Abs(pt.Y - lastLeftClickPoint.Y) <= 5;
+                    lastLeftClickTime = DateTime.Now;
+                    lastLeftClickPoint = pt;
+
+                    RecordMouseInteraction(isDouble ? "DOUBLE_CLICK" : "CLICK", pt);
+                }
+                else if (rightDown && !wasRightDown)
+                {
+                    FlushTypingBuffer();
+                    RecordMouseInteraction("RIGHT_CLICK", pt);
+                }
+            }
+
+            wasLeftDown = leftDown;
+            wasRightDown = rightDown;
+
+            // 3. UIA Focused Element & Text/Value Change Tracking (100% Antivirus-safe keyboard data capture)
+            IntPtr fg = NativeMethods.GetForegroundWindow();
+            if (fg != IntPtr.Zero && NativeMethods.GetProcessId(fg) != ownProcessId && !IgnoredWindowHwnds.Contains(fg))
+            {
+                CheckFocusedElementTextDelta();
             }
         }
         catch (Exception ex)
         {
-            SystemLogger.Log($"Recorder mouse handler error: {ex.Message}", SystemLogger.LogLevel.DEBUG);
+            SystemLogger.Log($"Recorder poll error: {ex.Message}", SystemLogger.LogLevel.DEBUG);
         }
+        finally
+        {
+            Monitor.Exit(syncLock);
+        }
+    }
+
+    private void RecordMouseInteraction(string action, Point pt)
+    {
+        var (def, hover, el) = ScrapeControlAtMouseAndWindowPosition(pt.X, pt.Y, commitToRepository: true);
+        activeTargetControl = "@" + def.Name;
+        activeTargetHwnd = hover.ControlHwnd != IntPtr.Zero ? hover.ControlHwnd : hover.RootWindowHwnd;
+        activeTargetElement = el;
+        lastObservedControlText = ReadActiveControlText();
+
+        string relCoords = $"{hover.WindowRelativePoint.X}|{hover.WindowRelativePoint.Y}";
+        string desc = $"{action} on @{def.Name} ({def.Get(ControlDefinition.Keys.ControlType)} '{def.Get(ControlDefinition.Keys.Name)}') " +
+                      $"[WinRel: {hover.WindowRelativePoint.X},{hover.WindowRelativePoint.Y} | CtrlRel: {hover.ControlRelativePoint.X},{hover.ControlRelativePoint.Y}]";
+
+        AppendStep(action, "@" + def.Name, relCoords, desc);
+    }
+
+    private void CheckFocusedElementTextDelta()
+    {
+        try
+        {
+            var focused = AutomationElement.FocusedElement;
+            if (focused != null && focused.Current.ProcessId != ownProcessId)
+            {
+                if (activeTargetElement == null || !Automation.Compare(focused, activeTargetElement))
+                {
+                    FlushTypingBuffer();
+                    var rect = focused.Current.BoundingRectangle;
+                    if (!rect.IsEmpty && rect.Width > 0 && rect.Height > 0)
+                    {
+                        int cx = (int)(rect.Left + rect.Width / 2);
+                        int cy = (int)(rect.Top + rect.Height / 2);
+                        var (def, hover, el) = ScrapeControlAtMouseAndWindowPosition(cx, cy, commitToRepository: true);
+                        activeTargetControl = "@" + def.Name;
+                        activeTargetHwnd = hover.ControlHwnd != IntPtr.Zero ? hover.ControlHwnd : hover.RootWindowHwnd;
+                        activeTargetElement = el ?? focused;
+                        lastObservedControlText = ReadActiveControlText();
+                    }
+                }
+            }
+        }
+        catch { }
+    }
+
+    private string ReadActiveControlText()
+    {
+        if (activeTargetElement != null)
+        {
+            string val = UiaAutomation.GetValue(activeTargetElement);
+            if (!string.IsNullOrEmpty(val)) return val;
+        }
+        if (activeTargetHwnd != IntPtr.Zero)
+        {
+            return Win32Automation.GetControlText(activeTargetHwnd);
+        }
+        return "";
     }
 
     private void FlushTypingBuffer()
     {
-        if (typingBuffer.Length == 0) return;
-        string text = typingBuffer.ToString();
-        typingBuffer.Clear();
-        AppendStep("TYPE", typingTarget ?? "", text, $"Typed '{text}'");
-    }
-
-    private void AppendStep(string action, string target, string value, string description)
-    {
-        var step = CurrentTest.AddStep(action, target, value, "", description);
-        StepRecorded?.Invoke(step);
-    }
-
-    private static string VkToUnicode(uint vk, uint scan)
-    {
-        byte[] state = new byte[256];
-        NativeMethods.GetKeyboardState(state);
-        var sb = new StringBuilder(8);
-        int rc = NativeMethods.ToUnicode(vk, scan, state, sb, sb.Capacity, 0);
-        return rc > 0 ? sb.ToString(0, rc) : "";
+        string currentText = ReadActiveControlText();
+        if (!string.IsNullOrEmpty(currentText) &&
+            !string.Equals(currentText, lastObservedControlText, StringComparison.Ordinal))
+        {
+            lastObservedControlText = currentText;
+            AppendStep("TYPE", activeTargetControl ?? "", currentText, $"Entered keyboard text '{currentText}' into {activeTargetControl ?? "focused control"}");
+        }
     }
 
     public void Dispose() => StopRecording();
 }
-

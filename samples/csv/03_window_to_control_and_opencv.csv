@@ -1,0 +1,8 @@
+Index,Action,Target,Value,Options,Description
+1,SET_VAR,highlight,1,,Enable Win32 control outline highlighting
+2,HIGHLIGHT,@button_1,#38BDF8|240|3,Highlight button_1 using its scraped Window-to-Control bounds
+3,CLICK_RELATIVE,@button_1,140|95|LEFT,retry=1,Click using Window-to-Control relative client coordinates (X=140 Y=95)
+4,CV_SNAPSHOT_CONTROL,@button_1,,,Capture OpenCvSharp4 control + parent window snapshot into Control Sheet
+5,CV_VERIFY_IMAGE,@button_1,0.80,retry=2,Verify @button_1 matches its stored OpenCV template at >= 0.80 confidence
+6,SET_VAR,highlight,0,,Disable Win32 highlighting (0 / empty turns highlighting off)
+7,LOG,Vision & Coords Complete,Verified Window-to-Control position and OpenCV template,,Log completion

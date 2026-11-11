@@ -64,18 +64,8 @@ public static class NativeMethods
         public uint uMsg; public ushort wParamL; public ushort wParamH;
     }
 
-    // Low-level hook structs (recorder)
-    [StructLayout(LayoutKind.Sequential)]
-    public struct MSLLHOOKSTRUCT
-    {
-        public POINT pt; public uint mouseData; public uint flags; public uint time; public IntPtr dwExtraInfo;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct KBDLLHOOKSTRUCT
-    {
-        public uint vkCode; public uint scanCode; public uint flags; public uint time; public IntPtr dwExtraInfo;
-    }
+    public const uint CWP_SKIPINVISIBLE = 0x0001;
+    public const uint CWP_SKIPDISABLED = 0x0002;
 
     // Win32 Constants
     public const int INPUT_MOUSE = 0;
@@ -110,18 +100,15 @@ public static class NativeMethods
     public const uint WM_MOUSEWHEEL = 0x020A;
     public const uint BM_CLICK = 0x00F5;
     public const uint BM_GETCHECK = 0x00F0;
-    public const int WH_KEYBOARD_LL = 13;
-    public const int WH_MOUSE_LL = 14;
     public const int SW_HIDE = 0, SW_SHOWNORMAL = 1, SW_SHOWMINIMIZED = 2, SW_SHOWMAXIMIZED = 3, SW_RESTORE = 9;
     public const uint GA_ROOT = 2;
+    public const int GWL_STYLE = -16, GWL_EXSTYLE = -20, GWL_ID = -12;
+    public const uint SMTO_ABORTIFHUNG = 0x0002;
     public const uint PW_RENDERFULLCONTENT = 0x00000002;
     public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
     public const int SM_XVIRTUALSCREEN = 76, SM_YVIRTUALSCREEN = 77, SM_CXVIRTUALSCREEN = 78, SM_CYVIRTUALSCREEN = 79;
-    public const int GWL_STYLE = -16, GWL_EXSTYLE = -20, GWL_ID = -12;
-    public const uint SMTO_ABORTIFHUNG = 0x0002;
 
     public delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
-    public delegate IntPtr LowLevelProc(int nCode, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool EnumChildWindows(IntPtr hwndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
@@ -217,6 +204,12 @@ public static class NativeMethods
     public static extern IntPtr WindowFromPoint(POINT point);
 
     [DllImport("user32.dll")]
+    public static extern IntPtr ChildWindowFromPointEx(IntPtr hwndParent, POINT pt, uint uFlags);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr RealChildWindowFromPoint(IntPtr hwndParent, POINT ptParentClientCoords);
+
+    [DllImport("user32.dll")]
     public static extern int GetDlgCtrlID(IntPtr hWnd);
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
@@ -227,33 +220,6 @@ public static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdcBlt, uint nFlags);
-
-    [DllImport("user32.dll")]
-    public static extern short VkKeyScan(char ch);
-
-    [DllImport("user32.dll")]
-    public static extern uint MapVirtualKey(uint uCode, uint uMapType);
-
-    [DllImport("user32.dll")]
-    public static extern short GetKeyState(int nVirtKey);
-
-    [DllImport("user32.dll")]
-    public static extern bool GetKeyboardState(byte[] lpKeyState);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    public static extern int ToUnicode(uint wVirtKey, uint wScanCode, byte[] lpKeyState, StringBuilder pwszBuff, int cchBuff, uint wFlags);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern IntPtr SetWindowsHookEx(int idHook, LowLevelProc lpfn, IntPtr hMod, uint dwThreadId);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool UnhookWindowsHookEx(IntPtr hhk);
-
-    [DllImport("user32.dll")]
-    public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    public static extern IntPtr GetModuleHandle(string? lpModuleName);
 
     [DllImport("dwmapi.dll")]
     public static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out RECT pvAttribute, int cbAttribute);

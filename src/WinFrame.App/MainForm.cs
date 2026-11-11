@@ -131,7 +131,7 @@ public sealed class MainForm : Form
                 MessageBoxIcon.Information);
             if (ans == DialogResult.Yes)
             {
-                await AutoUpdateManager.DownloadAndRunInstallerAsync(manifest.SetupUrl);
+                await AutoUpdateManager.LaunchUpdateUrlAsync(manifest.SetupUrl);
             }
         }
         else
@@ -173,6 +173,8 @@ public sealed class MainForm : Form
         mnuFile.DropDownItems.Add("E&xit", null, (_, _) => Close());
 
         var mnuTools = new ToolStripMenuItem("&Pipelines & Tools") { Name = "mnuTools" };
+        mnuTools.DropDownItems.Add("● Record New Test Case (Dock Bar + Step Editor + Save Flow)...", null, (_, _) => StartInteractiveRecordingFlow());
+        mnuTools.DropDownItems.Add(new ToolStripSeparator());
         mnuTools.DropDownItems.Add("OpenCV Snipping Tool (Region/Control Snapshot)...", null, (_, _) => SnipRegionInteractive());
         mnuTools.DropDownItems.Add("Snapshot Full Screen (OpenCV)...", null, (_, _) => SnapshotScreenQuick());
         mnuTools.DropDownItems.Add("Insert Win32 HIGHLIGHT Steps for All Controls", null, (_, _) => InsertHighlightStepsIntoCurrentTest());
@@ -261,23 +263,7 @@ public sealed class MainForm : Form
         btnRevRange.Click += (_, _) => RunRangeUi(useInverse: true);
 
         var btnRecord = new Button { Name = "btnToggleRecord", Text = "● Record Test", Width = 110, Height = 30 };
-        btnRecord.Click += (_, _) =>
-        {
-            if (!recorder.IsRecording)
-            {
-                recorder.StartRecording($"Recorded_{DateTime.Now:HHmmss}");
-                btnRecord.Text = "■ Stop Rec";
-                UpdateStatus("Recording mouse + keyboard + OpenCV snapshots...");
-            }
-            else
-            {
-                var recorded = recorder.StopRecording();
-                btnRecord.Text = "● Record Test";
-                AddTestToQueue(recorded);
-                RefreshAccessoryTable();
-                UpdateStatus($"Recorded '{recorded.Name}' ({recorded.Steps.Count} steps).");
-            }
-        };
+        btnRecord.Click += (_, _) => StartInteractiveRecordingFlow();
 
         var btnSnip = new Button { Name = "btnOpenCvSnip", Text = "✂ OpenCV Snip", Width = 105, Height = 30 };
         btnSnip.Click += (_, _) => SnipRegionInteractive();
@@ -441,6 +427,51 @@ public sealed class MainForm : Form
                     trayIcon.ShowBalloonTip(1500, "WinFrame Running in Tray", marqueeText, ToolTipIcon.Info);
             }
         };
+    }
+
+    // --------------------------------------------------------------------------------------------
+    // Interactive 3-Stage Recording Flow:
+    // 1. Hide MainForm & Show Live Docked RecordingBarForm (Mouse Scrape + Window-to-Control + Keyboard)
+    // 2. On Stop -> RecordedTestEditorDialog (Add / Move Up / Move Down / Delete steps one by one)
+    // 3. On Done -> SaveRecordedTestDialog (Save location + Existing or New TestBed stored in Config)
+    // --------------------------------------------------------------------------------------------
+
+    private void StartInteractiveRecordingFlow()
+    {
+        if (recorder.IsRecording) return;
+
+        // Remove MainForm from screen so it is not recorded initially
+        Hide();
+        Application.DoEvents();
+
+        TestCase recorded;
+        using (var bar = new RecordingBarForm(recorder, cfg))
+        {
+            recorder.IgnoredWindowHwnds.Add(Handle);
+            recorder.StartRecording($"Recorded_{DateTime.Now:HHmmss}");
+            bar.ShowDialog();
+            recorded = recorder.StopRecording();
+            recorder.IgnoredWindowHwnds.Remove(Handle);
+        }
+
+        // Stage 2 & 3: Present Test Case Layout Editor (Add/Move/Delete steps) -> Custom Save & TestBed Dialog
+        using (var editor = new RecordedTestEditorDialog(recorded, repo, cfg))
+        {
+            editor.ShowDialog();
+        }
+
+        // Restore MainForm and populate the new test case & updated TestBeds/Controls
+        Show();
+        WindowState = FormWindowState.Normal;
+        Activate();
+
+        ReloadTestBedsCombo();
+        if (!string.IsNullOrWhiteSpace(recorded.TestBed) && cmbTestBed.Items.Contains(recorded.TestBed))
+            cmbTestBed.SelectedItem = recorded.TestBed;
+
+        AddTestToQueue(recorded);
+        RefreshAccessoryTable();
+        UpdateStatus($"Recorded & configured '{recorded.Name}' ({recorded.Steps.Count} steps, TestBed: {recorded.TestBed}).");
     }
 
     // --------------------------------------------------------------------------------------------

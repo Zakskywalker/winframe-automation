@@ -1,0 +1,62 @@
+{
+  "Name": "Notepad_Keyboard_Entry_And_Inverse_JSON",
+  "TestBed": "Notepad",
+  "Variables": {
+    "highlight": "1",
+    "author": "Zak Millikin (Zakskywalker M_A.P.)"
+  },
+  "Steps": [
+    {
+      "Index": 1,
+      "Action": "SET_VAR",
+      "Target": "session_status",
+      "Value": "typing",
+      "Options": {},
+      "Description": "Initialize session_status variable"
+    },
+    {
+      "Index": 2,
+      "Action": "HIGHLIGHT",
+      "Target": "@edit_1",
+      "Value": "#A855F7|260|3",
+      "Options": {},
+      "Description": "Outline @edit_1 with purple Win32 GDI pen"
+    },
+    {
+      "Index": 3,
+      "Action": "TYPE",
+      "Target": "@edit_1",
+      "Value": "Hand of Glory Games and Software — Author: ${author}",
+      "Options": {
+        "retry": "1"
+      },
+      "Description": "Type text into @edit_1 (Rule-based inverse: CLEAR_TEXT)"
+    },
+    {
+      "Index": 4,
+      "Action": "SEND_KEYS",
+      "Target": "@edit_1",
+      "Value": "{ENTER}",
+      "Options": {},
+      "Description": "Commit line with Enter key"
+    },
+    {
+      "Index": 5,
+      "Action": "SET_VAR",
+      "Target": "session_status",
+      "Value": "committed",
+      "Options": {},
+      "Description": "Mark session as committed"
+    },
+    {
+      "Index": 6,
+      "Action": "ASSERT_VAR",
+      "Target": "session_status",
+      "Value": "committed",
+      "Options": {
+        "critical": "true"
+      },
+      "Description": "Verify session_status is committed"
+    }
+  ]
+}

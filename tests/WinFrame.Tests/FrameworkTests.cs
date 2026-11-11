@@ -7,6 +7,7 @@ using WinFrame.Core.Execution;
 using WinFrame.Core.Keywords;
 using WinFrame.Core.Logging;
 using WinFrame.Core.Native;
+using WinFrame.Core.Recording;
 using WinFrame.Core.Reporting;
 using WinFrame.Core.Update;
 
@@ -219,6 +220,51 @@ public class FrameworkTests
         Assert.True(AutoUpdateManager.IsVersionNewer("1.0.0.0", "1.0.0.42"));
         Assert.False(AutoUpdateManager.IsVersionNewer("1.0.0", "1.0.0"));
         Assert.False(AutoUpdateManager.IsVersionNewer("1.0.0", "0.9.9"));
+    }
+
+    [Fact]
+    public void SampleFormats_Csv_Json_Xlsx_And_WindowToControlPosition_WorkEndToEnd()
+    {
+        string repoRoot = AppContext.BaseDirectory;
+        while (!string.IsNullOrEmpty(repoRoot) && !File.Exists(Path.Combine(repoRoot, "WinFrame.sln")))
+        {
+            repoRoot = Path.GetDirectoryName(repoRoot) ?? "";
+        }
+        string csvPath = Path.Combine(repoRoot, "samples", "csv", "01_calculator_win32_and_uia.csv");
+        string jsonSuitePath = Path.Combine(repoRoot, "samples", "json", "01_calculator_suite.json");
+        string xlsxSuitePath = Path.Combine(repoRoot, "samples", "xlsx", "01_winframe_multi_sheet_suite.xlsx");
+        string xlsxControlsPath = Path.Combine(repoRoot, "samples", "controls", "sample_controls.xlsx");
+
+        var csvTests = TestSheetLoader.LoadFromFile(csvPath);
+        Assert.Single(csvTests);
+        Assert.Equal(11, csvTests[0].Steps.Count);
+
+        var jsonTests = TestSheetLoader.LoadFromFile(jsonSuitePath);
+        Assert.Equal(2, jsonTests.Count);
+
+        // Generate/update the multi-sheet Excel (.xlsx) sample suite & Excel control sheet
+        Directory.CreateDirectory(Path.GetDirectoryName(xlsxSuitePath)!);
+        var combinedSuite = new List<TestCase>();
+        combinedSuite.AddRange(csvTests);
+        combinedSuite.AddRange(jsonTests);
+        TestSheetLoader.SaveXlsx(combinedSuite, xlsxSuitePath);
+
+        var loadedXlsx = TestSheetLoader.LoadFromFile(xlsxSuitePath);
+        Assert.Equal(3, loadedXlsx.Count);
+
+        var jsonControlsPath = Path.Combine(repoRoot, "samples", "controls", "sample_controls.json");
+        var ctrlRepo = new ControlRepository(new JsonControlStore(jsonControlsPath)).Load();
+        Assert.True(ctrlRepo.Count >= 4);
+        new XlsxControlStore(xlsxControlsPath).Save(ctrlRepo.All);
+        Assert.True(File.Exists(xlsxControlsPath));
+
+        // Verify Window-to-Control Position & Recorder Mouse+Window Scrape
+        var recorder = new TestRecorder(new ControlRepository()) { CaptureOpenCvSnapshots = false };
+        var (def, hover, _) = recorder.ScrapeControlAtMouseAndWindowPosition(100, 100, commitToRepository: true);
+        Assert.NotNull(def);
+        Assert.True(def.Attributes.ContainsKey("Win32.WindowRelX"));
+        Assert.True(def.Attributes.ContainsKey("Win32.ControlRelX"));
+        Assert.False(string.IsNullOrWhiteSpace(hover.SuggestedName));
     }
 }
 

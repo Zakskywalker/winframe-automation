@@ -269,12 +269,22 @@ public sealed class JsonControlStore(string path) : IControlStore
         public DateTime Updated { get; set; }
     }
 
-    private static readonly JsonSerializerOptions Opts = new() { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+    private static readonly JsonSerializerOptions Opts = new()
+    {
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
     public IEnumerable<ControlDefinition> Load()
     {
         if (!File.Exists(path)) return Array.Empty<ControlDefinition>();
-        var map = JsonSerializer.Deserialize<Dictionary<string, Entry>>(File.ReadAllText(path), Opts) ?? new();
+        string raw = File.ReadAllText(path).Trim();
+        if (raw.StartsWith('['))
+        {
+            return JsonSerializer.Deserialize<List<ControlDefinition>>(raw, Opts) ?? new List<ControlDefinition>();
+        }
+        var map = JsonSerializer.Deserialize<Dictionary<string, Entry>>(raw, Opts) ?? new();
         return map.Select(kv => new ControlDefinition
         {
             Name = kv.Key,

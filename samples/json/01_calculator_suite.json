@@ -1,0 +1,94 @@
+[
+  {
+    "Name": "Calculator_Addition_And_Highlight_JSON",
+    "TestBed": "Calculator",
+    "Variables": {
+      "highlight": "1",
+      "expected": "15"
+    },
+    "Steps": [
+      {
+        "Index": 1,
+        "Action": "SET_VAR",
+        "Target": "highlight",
+        "Value": "1",
+        "Options": {},
+        "Description": "Enable Win32 GDI outline highlighting"
+      },
+      {
+        "Index": 2,
+        "Action": "HIGHLIGHT",
+        "Target": "@button_1,@button_2",
+        "Value": "#F59E0B|250|3",
+        "Options": {},
+        "Description": "Outline Calculator buttons using Win32 GDI pen"
+      },
+      {
+        "Index": 3,
+        "Action": "UIA_INVOKE",
+        "Target": "@button_1",
+        "Value": "120|220",
+        "Options": {
+          "retry": "2"
+        },
+        "Description": "Click button_1 (WinRel: 120,220)"
+      },
+      {
+        "Index": 4,
+        "Action": "UIA_INVOKE",
+        "Target": "@button_2",
+        "Value": "200|220",
+        "Options": {
+          "retry": "2"
+        },
+        "Description": "Click button_2 (WinRel: 200,220)"
+      },
+      {
+        "Index": 5,
+        "Action": "ASSERT_VAR",
+        "Target": "expected",
+        "Value": "15",
+        "Options": {
+          "critical": "true"
+        },
+        "Description": "Verify expected result variable"
+      }
+    ]
+  },
+  {
+    "Name": "Checkbox_Toggle_And_Inverse_JSON",
+    "TestBed": "Default",
+    "Variables": {
+      "highlight": "true",
+      "mode": "active"
+    },
+    "Steps": [
+      {
+        "Index": 1,
+        "Action": "SET_VAR",
+        "Target": "mode",
+        "Value": "configured",
+        "Options": {},
+        "Description": "Set mode variable (inverse restores previous value)"
+      },
+      {
+        "Index": 2,
+        "Action": "UIA_TOGGLE",
+        "Target": "@checkbox_1",
+        "Value": "On",
+        "Options": {
+          "inverse": "UIA_TOGGLE|@checkbox_1|Off"
+        },
+        "Description": "Toggle checkbox_1 On (inverse automatically toggles Off)"
+      },
+      {
+        "Index": 3,
+        "Action": "LOG",
+        "Target": "JSON Suite",
+        "Value": "Completed Checkbox_Toggle_And_Inverse_JSON in mode=${mode}",
+        "Options": {},
+        "Description": "Write status to Test Run Log"
+      }
+    ]
+  }
+]

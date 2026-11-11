@@ -6,6 +6,7 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>WinFrame.App</AssemblyName>
     <RootNamespace>WinFrame.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <Description>WinFrame Desktop Studio: Load Tests Queue, Developer Step/Inverse Range Controller, Create Tests Recorder &amp; Control Scraper with Accessory Naming Panel, OpenCV Snipping Tool, Theme Picker, and Tray Reporting.</Description>
   </PropertyGroup>
 

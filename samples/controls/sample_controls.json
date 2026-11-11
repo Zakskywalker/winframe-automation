@@ -1,0 +1,78 @@
+[
+  {
+    "Name": "button_1",
+    "Attributes": {
+      "AutomationId": "num7Button",
+      "Name": "Seven",
+      "ClassName": "Button",
+      "ControlType": "Button",
+      "WindowTitle": "Calculator",
+      "BoundingRectangle": "120,340,76,52",
+      "RelativeBounds": "20,240,76,52",
+      "Win32.WindowRelX": "58",
+      "Win32.WindowRelY": "266",
+      "Win32.ControlRelX": "38",
+      "Win32.ControlRelY": "26",
+      "Win32.CtrlId": "137"
+    },
+    "Image": null,
+    "WindowImage": null
+  },
+  {
+    "Name": "button_2",
+    "Attributes": {
+      "AutomationId": "plusButton",
+      "Name": "Plus",
+      "ClassName": "Button",
+      "ControlType": "Button",
+      "WindowTitle": "Calculator",
+      "BoundingRectangle": "360,400,76,52",
+      "RelativeBounds": "260,300,76,52",
+      "Win32.WindowRelX": "298",
+      "Win32.WindowRelY": "326",
+      "Win32.ControlRelX": "38",
+      "Win32.ControlRelY": "26",
+      "Win32.CtrlId": "93"
+    },
+    "Image": null,
+    "WindowImage": null
+  },
+  {
+    "Name": "edit_1",
+    "Attributes": {
+      "AutomationId": "RichEditD2DPT",
+      "Name": "Text Editor",
+      "ClassName": "RichEditD2DPT",
+      "ControlType": "Document",
+      "WindowTitle": "Untitled - Notepad",
+      "BoundingRectangle": "100,140,800,500",
+      "RelativeBounds": "0,40,800,500",
+      "Win32.WindowRelX": "240",
+      "Win32.WindowRelY": "180",
+      "Win32.ControlRelX": "240",
+      "Win32.ControlRelY": "140",
+      "Win32.CtrlId": "15"
+    },
+    "Image": null,
+    "WindowImage": null
+  },
+  {
+    "Name": "checkbox_1",
+    "Attributes": {
+      "AutomationId": "chkRememberMe",
+      "Name": "Remember Me",
+      "ClassName": "Button",
+      "ControlType": "CheckBox",
+      "WindowTitle": "WinFrame Sample Form",
+      "BoundingRectangle": "150,260,140,24",
+      "RelativeBounds": "30,120,140,24",
+      "Win32.WindowRelX": "45",
+      "Win32.WindowRelY": "132",
+      "Win32.ControlRelX": "15",
+      "Win32.ControlRelY": "12",
+      "Win32.CtrlId": "204"
+    },
+    "Image": null,
+    "WindowImage": null
+  }
+]

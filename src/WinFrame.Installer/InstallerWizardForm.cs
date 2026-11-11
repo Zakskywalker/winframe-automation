@@ -367,3 +367,4 @@ public sealed class InstallerWizardForm : Form
         catch { }
     }
 }
+

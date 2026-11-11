@@ -25,25 +25,45 @@ public static class TestSheetLoader
         var tc = new TestCase(Path.GetFileNameWithoutExtension(path)) { SourcePath = path };
         var rows = Csv.Parse(File.ReadAllText(path)).ToList();
         int startRow = 0;
-        if (rows.Count > 0 && rows[0].Count > 0 &&
-            rows[0][0].Trim().Equals("Action", StringComparison.OrdinalIgnoreCase))
+        bool hasLeadingIndexCol = false;
+
+        if (rows.Count > 0 && rows[0].Count > 0)
         {
-            startRow = 1;
+            string h0 = rows[0][0].Trim();
+            if (h0.Equals("Action", StringComparison.OrdinalIgnoreCase))
+            {
+                startRow = 1;
+            }
+            else if (h0.Equals("Index", StringComparison.OrdinalIgnoreCase) ||
+                     h0.Equals("Step", StringComparison.OrdinalIgnoreCase) ||
+                     h0.Equals("#", StringComparison.OrdinalIgnoreCase))
+            {
+                startRow = 1;
+                hasLeadingIndexCol = true;
+            }
+            else if (int.TryParse(h0, out _) && rows[0].Count >= 2)
+            {
+                hasLeadingIndexCol = true;
+            }
         }
 
         for (int i = startRow; i < rows.Count; i++)
         {
             var r = rows[i];
             if (r.Count == 0 || string.IsNullOrWhiteSpace(r[0]) || r[0].TrimStart().StartsWith('#')) continue;
+            int offset = hasLeadingIndexCol || (int.TryParse(r[0].Trim(), out _) && r.Count >= 2) ? 1 : 0;
+            string action = r.ElementAtOrDefault(offset)?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(action)) continue;
+
             tc.Steps.Add(new TestStep
             {
                 Index = tc.Steps.Count + 1,
                 SourceLine = i + 1,
-                Action = r[0].Trim().ToUpperInvariant(),
-                Target = r.ElementAtOrDefault(1)?.Trim() ?? "",
-                Value = r.ElementAtOrDefault(2)?.Trim() ?? "",
-                Options = TestStep.ParseOptions(r.ElementAtOrDefault(3)),
-                Description = r.ElementAtOrDefault(4)?.Trim() ?? ""
+                Action = action.ToUpperInvariant(),
+                Target = r.ElementAtOrDefault(offset + 1)?.Trim() ?? "",
+                Value = r.ElementAtOrDefault(offset + 2)?.Trim() ?? "",
+                Options = TestStep.ParseOptions(r.ElementAtOrDefault(offset + 3)),
+                Description = r.ElementAtOrDefault(offset + 4)?.Trim() ?? ""
             });
         }
         return tc;

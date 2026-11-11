@@ -124,9 +124,9 @@ public static class Program
                     : "WinFrame is up to date (or update server unreachable).");
                 if (!checkOnly && isNewer)
                 {
-                    Console.WriteLine("Downloading and launching update installer...");
-                    bool launched = AutoUpdateManager.DownloadAndRunInstallerAsync(manifest?.SetupUrl).GetAwaiter().GetResult();
-                    Console.WriteLine(launched ? "Installer launched." : "Update download failed.");
+                    Console.WriteLine("Opening ClickOnce update installer URL...");
+                    bool launched = AutoUpdateManager.LaunchUpdateUrlAsync(manifest?.SetupUrl).GetAwaiter().GetResult();
+                    Console.WriteLine(launched ? "Opened update installer URL." : "Update launch failed.");
                 }
                 return 0;
             }
