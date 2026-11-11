@@ -92,6 +92,52 @@ powershell -ExecutionPolicy Bypass -File .\installer\build_installer.ps1
 
 ---
 
+## Versioning & Pre-Submit Checklist (Before Pushing to GitHub)
+
+### 1. Versioning Architecture
+- **Current Release Line:** `1.0.0` (`Major.Minor.Patch`), configured centrally in `Directory.Build.props` (`<Version>1.0.0</Version>`).
+- **Automated ClickOnce & GitHub Pages Build Version:** `1.0.0.<GITHUB_RUN_NUMBER>` (`Major.Minor.Patch.Revision`).
+  - On every push to `main`, `.github/workflows/pages.yml` passes `/property:ApplicationVersion=1.0.0.$env:GITHUB_RUN_NUMBER` to MSBuild and writes the matching version into `clickonce/version.json`.
+  - Both Windows ClickOnce (`setup.exe` / `WinFrame.App.application`) and `AutoUpdateManager.CheckForUpdateAsync()` compare the 4-part version so every push to `main` is automatically recognized as an update.
+- **Files to Update When Bumping `Major.Minor.Patch` (e.g., `1.0.0` -> `1.1.0`):**
+  1. `Directory.Build.props` — `<Version>1.1.0</Version>`
+  2. `.github/workflows/pages.yml` — `$version = "1.1.0.$env:GITHUB_RUN_NUMBER"`
+  3. `docs/version.json` — `"version": "1.1.0.0"`
+  4. `installer/setup.iss`, `installer/build_installer.ps1`, and `src/WinFrame.Installer/InstallerWizardForm.cs` (`DisplayVersion`)
+  5. `.github/pages/index.html` and `docs/index.html` badge text
+
+### 2. Pre-Push / Pre-Submit Checklist
+Before committing and pushing changes to GitHub (`origin/main`), run through these steps:
+
+```powershell
+# Step 1: Build the full solution in Release mode and ensure 0 errors
+dotnet build WinFrame.sln -c Release --nologo
+
+# Step 2: Run the entire xUnit test suite and verify all tests pass
+dotnet test WinFrame.sln -c Release --nologo
+
+# Step 3: Smoke-test CLI keywords & update check
+dotnet run --project src/WinFrame.Cli/WinFrame.Cli.csproj -- keywords
+dotnet run --project src/WinFrame.Cli/WinFrame.Cli.csproj -- run samples/highlight_and_inverse_demo.csv
+
+# Step 4: (Optional) Rebuild local Windows 11 distribution & Setup Wizard bundle
+powershell -ExecutionPolicy Bypass -File .\installer\build_installer.ps1
+
+# Step 5: Inspect staged files to ensure no local logs, reports, or secrets are included
+git status
+```
+
+- **Do Not Commit Local Runtime State:** Ensure runtime directories (`logs/`, `reports/`, `controls_images/`, `bin/`, `obj/`, `publish/`, `dist/`) and `%APPDATA%\WinFrame\config.json` (which holds DPAPI-encrypted credentials and MySQL connection strings) stay untracked via `.gitignore`.
+- **Verify CI/CD After Pushing:**
+  ```powershell
+  git add -A
+  git commit -m "Describe your change"
+  git push origin main
+  & "$env:LOCALAPPDATA\Programs\gh\bin\gh.exe" run list --limit 5
+  ```
+
+---
+
 ## Credits & Attribution
 
 - **Creator & Lead Architect:** Zak Millikin (**Zakskywalker M_A.P.**) — *Hand of Glory Games and Software*
