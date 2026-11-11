@@ -1,5 +1,6 @@
 using System.Windows.Forms;
 using WinFrame.Core.Config;
+using WinFrame.Core.Logging;
 using WinFrame.Core.Native;
 
 namespace WinFrame.App;
@@ -12,17 +13,31 @@ public static class Program
         NativeMethods.EnsureDpiAwareness();
         ApplicationConfiguration.Initialize();
 
-        var cfg = ConfigManager.Current;
-        if (cfg.ShowSplash)
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Application.ThreadException += (_, e) =>
         {
-            using var splash = new SplashScreenForm();
-            splash.Show();
-            Application.DoEvents();
-            Thread.Sleep(1400);
-            splash.Close();
-        }
+            SystemLogger.Log($"UI Thread Exception: {e.Exception}", SystemLogger.LogLevel.ERROR);
+            MessageBox.Show(e.Exception.ToString(), "WinFrame Studio Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        };
 
-        Application.Run(new MainForm());
+        try
+        {
+            var cfg = ConfigManager.Current;
+            if (cfg.ShowSplash)
+            {
+                using var splash = new SplashScreenForm();
+                splash.Show();
+                Application.DoEvents();
+                Thread.Sleep(1200);
+                splash.Close();
+            }
+
+            Application.Run(new MainForm());
+        }
+        catch (Exception ex)
+        {
+            SystemLogger.Log($"Startup Exception: {ex}", SystemLogger.LogLevel.ERROR);
+            MessageBox.Show(ex.ToString(), "WinFrame Startup Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 }
-

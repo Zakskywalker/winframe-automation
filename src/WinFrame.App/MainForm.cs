@@ -203,8 +203,7 @@ public sealed class MainForm : Form
         var mainSplit = new SplitContainer
         {
             Name = "splitMainAndAccessory",
-            Dock = DockStyle.Fill,
-            SplitterDistance = 900
+            Dock = DockStyle.Fill
         };
 
         // ---- Left/Center: Queue + Step Editor + Developer Step/Inverse Range Bar + Logs ----
@@ -212,15 +211,26 @@ public sealed class MainForm : Form
         {
             Name = "splitEditorAndLogs",
             Dock = DockStyle.Fill,
-            Orientation = Orientation.Horizontal,
-            SplitterDistance = 500
+            Orientation = Orientation.Horizontal
         };
 
         var queueAndStepsSplit = new SplitContainer
         {
             Name = "splitQueueAndSteps",
-            Dock = DockStyle.Fill,
-            SplitterDistance = 260
+            Dock = DockStyle.Fill
+        };
+
+        Shown += (_, _) =>
+        {
+            try
+            {
+                if (mainSplit.Width > 400) mainSplit.SplitterDistance = Math.Min(900, mainSplit.Width - 320);
+                if (leftSplit.Height > 300) leftSplit.SplitterDistance = Math.Min(500, leftSplit.Height - 200);
+                if (queueAndStepsSplit.Width > 350) queueAndStepsSplit.SplitterDistance = 260;
+            }
+            catch { }
+            Activate();
+            BringToFront();
         };
 
         // Queue Panel (Pipeline 1: Load Tests Queue)
@@ -411,7 +421,8 @@ public sealed class MainForm : Form
                     try
                     {
                         using var ms = new MemoryStream(bytes);
-                        picControlPreview.Image = Image.FromStream(ms);
+                        using var src = Image.FromStream(ms);
+                        picControlPreview.Image = new Bitmap(src);
                     }
                     catch { }
                 }

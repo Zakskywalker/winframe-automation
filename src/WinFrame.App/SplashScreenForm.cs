@@ -27,14 +27,19 @@ public sealed class SplashScreenForm : Form
         string imgPath = Path.Combine(AppContext.BaseDirectory, "assets", "splash.jpg");
         if (!File.Exists(imgPath))
         {
-            imgPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "assets", "splash.jpg"));
+            string? walk = AppContext.BaseDirectory;
+            while (!string.IsNullOrEmpty(walk) && !File.Exists(Path.Combine(walk, "WinFrame.sln")))
+                walk = Path.GetDirectoryName(walk);
+            if (!string.IsNullOrEmpty(walk))
+                imgPath = Path.Combine(walk, "assets", "splash.jpg");
         }
         if (File.Exists(imgPath))
         {
             try
             {
-                using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read);
-                pic.Image = Image.FromStream(fs);
+                using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var src = Image.FromStream(fs);
+                pic.Image = new Bitmap(src);
             }
             catch { }
         }

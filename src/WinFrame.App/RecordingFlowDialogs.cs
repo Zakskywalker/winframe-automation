@@ -297,8 +297,12 @@ public sealed class RecordedTestEditorDialog : Form
         var split = new SplitContainer
         {
             Name = "splitTestLayoutAndControlInfo",
-            Dock = DockStyle.Fill,
-            SplitterDistance = 760
+            Dock = DockStyle.Fill
+        };
+        Shown += (_, _) =>
+        {
+            try { if (split.Width > 400) split.SplitterDistance = Math.Min(760, split.Width - 300); }
+            catch { }
         };
 
         gridSteps.Columns.Add("Index", "#");
@@ -551,7 +555,8 @@ public sealed class RecordedTestEditorDialog : Form
                 try
                 {
                     using var ms = new MemoryStream(bytes);
-                    picSnap.Image = Image.FromStream(ms);
+                    using var src = Image.FromStream(ms);
+                    picSnap.Image = new Bitmap(src);
                 }
                 catch { picSnap.Image = null; }
             }
