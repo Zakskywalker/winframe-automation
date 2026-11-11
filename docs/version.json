@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0.0",
+  "setupUrl": "https://zakskywalker.github.io/winframe-automation/setup.exe",
+  "installerExeUrl": "https://zakskywalker.github.io/winframe-automation/WinFrame.Installer.exe",
+  "coreDllUrl": "https://zakskywalker.github.io/winframe-automation/WinFrame.Core.dll",
+  "releaseNotes": "WinFrame Automation Studio 1.0 — Hand of Glory Games and Software (.NET 10 WinForms, Win32 + UIA + OpenCvSharp4, Step Inversion & Range Queue, Win32 GDI Highlighting, ClickOnce Auto-Updater & Windows 11 Setup Wizard)",
+  "publishedAt": "2026-11-11T00:00:00Z"
+}

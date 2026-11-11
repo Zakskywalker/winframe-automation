@@ -29,17 +29,17 @@ jobs:
       - name: Run Unit & Integration Tests
         run: dotnet test WinFrame.sln -c Release --no-build --logger "trx;LogFileName=test-results.trx"
 
-      - name: Package DLL, CLI EXE, App EXE & Service EXE
+      - name: Package DLL, CLI EXE, App EXE, Service EXE & Installer EXE
         run: |
-          New-Item -ItemType Directory -Force publish/dll, publish/cli, publish/app, publish/service | Out-Null
+          New-Item -ItemType Directory -Force publish/dll, publish/cli, publish/app, publish/service, publish/installer | Out-Null
           Copy-Item src/WinFrame.Core/bin/Release/net10.0-windows/win-x64/* publish/dll/ -Recurse -Force
           dotnet publish src/WinFrame.Cli/WinFrame.Cli.csproj -c Release -o publish/cli
           dotnet publish src/WinFrame.App/WinFrame.App.csproj -c Release -o publish/app
           dotnet publish src/WinFrame.Service/WinFrame.Service.csproj -c Release -o publish/service
+          dotnet publish src/WinFrame.Installer/WinFrame.Installer.csproj -c Release -o publish/installer
 
-      - name: Upload Build Artifacts (WinFrame.Core.dll + WinFrame.Cli.exe + WinFrame.App.exe)
+      - name: Upload Build Artifacts (WinFrame.Core.dll + App + CLI + Service + Setup Wizard)
         uses: actions/upload-artifact@v4
         with:
           name: winframe-release-bundle
           path: publish/
-

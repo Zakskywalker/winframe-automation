@@ -6,6 +6,7 @@ using WinFrame.Core.Native;
 using WinFrame.Core.Processes;
 using WinFrame.Core.Service;
 using WinFrame.Core.Uia;
+using WinFrame.Core.Update;
 using WinFrame.Core.Vision;
 
 namespace WinFrame.Cli;
@@ -112,6 +113,24 @@ public static class Program
                 return 0;
             }
 
+            case "update":
+            {
+                bool checkOnly = args.Any(a => a.Equals("--check", StringComparison.OrdinalIgnoreCase));
+                var (isNewer, manifest) = AutoUpdateManager.CheckForUpdateAsync().GetAwaiter().GetResult();
+                string latestVer = manifest?.Version ?? AutoUpdateManager.CurrentVersion;
+                Console.WriteLine($"Current Version: {AutoUpdateManager.CurrentVersion} | Latest Version: {latestVer}");
+                Console.WriteLine(isNewer
+                    ? $"Update available: {manifest?.ReleaseNotes}"
+                    : "WinFrame is up to date (or update server unreachable).");
+                if (!checkOnly && isNewer)
+                {
+                    Console.WriteLine("Downloading and launching update installer...");
+                    bool launched = AutoUpdateManager.DownloadAndRunInstallerAsync(manifest?.SetupUrl).GetAwaiter().GetResult();
+                    Console.WriteLine(launched ? "Installer launched." : "Update download failed.");
+                }
+                return 0;
+            }
+
             default:
                 PrintUsage();
                 return 1;
@@ -139,6 +158,9 @@ public static class Program
 
               WinFrame.Cli serve [http://localhost:5880/]
                   Hosts the WinFrame REST API & remote step-queue service.
+
+              WinFrame.Cli update [--check]
+                  Checks GitHub Pages (version.json / ClickOnce setup.exe) for updates and optionally installs.
             """);
     }
 }

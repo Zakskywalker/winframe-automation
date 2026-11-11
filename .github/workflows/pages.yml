@@ -1,12 +1,13 @@
-name: Deploy Documentation to GitHub Pages
+name: Publish ClickOnce Auto-Update & Installer to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -15,18 +16,83 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-pages:
-    runs-on: ubuntu-latest
+  build-and-deploy:
+    runs-on: windows-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Upload Pages artifact
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Run Unit Tests
+        run: dotnet test WinFrame.sln --configuration Release
+
+      - name: Publish ClickOnce Package, Setup Wizard & Landing Page
+        shell: pwsh
+        run: |
+          $version = "1.0.0.$env:GITHUB_RUN_NUMBER"
+          $publishDir = "$env:GITHUB_WORKSPACE\clickonce\"
+          New-Item -ItemType Directory -Force -Path $publishDir | Out-Null
+
+          msbuild src/WinFrame.App/WinFrame.App.csproj `
+            /restore `
+            /target:Publish `
+            /property:Configuration=Release `
+            /property:PublishProfile=GitHubPages `
+            /property:ApplicationVersion=$version `
+            /property:PublishDir=$publishDir
+
+          dotnet publish src/WinFrame.Installer/WinFrame.Installer.csproj -c Release -r win-x64 --self-contained false -o "$env:GITHUB_WORKSPACE\installer_pub"
+          if (Test-Path "$env:GITHUB_WORKSPACE\installer_pub\WinFrame.Installer.exe") {
+            Copy-Item "$env:GITHUB_WORKSPACE\installer_pub\WinFrame.Installer.exe" "$publishDir\WinFrame.Installer.exe" -Force
+          }
+
+          if (Test-Path "src/WinFrame.Core/bin/Release/net10.0-windows/win-x64/WinFrame.Core.dll") {
+            Copy-Item "src/WinFrame.Core/bin/Release/net10.0-windows/win-x64/WinFrame.Core.dll" "$publishDir\WinFrame.Core.dll" -Force
+          }
+
+          Copy-Item .github/pages/index.html "$publishDir\index.html" -Force
+          Copy-Item assets/splash.jpg "$publishDir\splash.jpg" -Force
+          New-Item -ItemType File -Force -Path "$publishDir\.nojekyll" | Out-Null
+
+          $versionMeta = @{
+            version         = $version
+            setupUrl        = "https://zakskywalker.github.io/winframe-automation/setup.exe"
+            installerExeUrl = "https://zakskywalker.github.io/winframe-automation/WinFrame.Installer.exe"
+            coreDllUrl      = "https://zakskywalker.github.io/winframe-automation/WinFrame.Core.dll"
+            releaseNotes    = "WinFrame Automation Studio $version — Hand of Glory Games and Software"
+            publishedAt     = (Get-Date).ToUniversalTime().ToString("o")
+          } | ConvertTo-Json -Depth 4
+          Set-Content -Path "$publishDir\version.json" -Value $versionMeta -Encoding UTF8
+
+      - name: Upload ClickOnce & Installer Bundle Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clickonce-site
+          path: clickonce
+
+      - name: Configure Pages
+        id: pages_config
+        continue-on-error: true
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages Artifact
+        if: steps.pages_config.outcome == 'success'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'docs'
+          path: clickonce
 
-      - name: Configure & Deploy to GitHub Pages (when enabled for repository visibility)
+      - name: Deploy to GitHub Pages
         id: deployment
+        if: steps.pages_config.outcome == 'success'
         continue-on-error: true
         uses: actions/deploy-pages@v4

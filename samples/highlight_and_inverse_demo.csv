@@ -8,3 +8,4 @@ SET_VAR,step3_var,Gamma,,Forward step 3 variable
 ASSERT_VAR,step3_var,Gamma,,Verify step 3 variable
 HIGHLIGHT,@num8Button,#00FF88|200|3,Special HIGHLIGHT keyword referencing Win32Highlighter
 LOG,Sample Sheet Complete,${step1_var}-${step2_var}-${step3_var},,Log completion to Test channel
+

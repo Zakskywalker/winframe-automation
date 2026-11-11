@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <AssemblyName>WinFrame.Installer</AssemblyName>
+    <RootNamespace>WinFrame.Installer</RootNamespace>
+    <Description>WinFrame Automation Studio — Windows 11 Setup Wizard (Hand of Glory Games and Software)</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\LICENSE" LogicalName="LICENSE" Condition="Exists('..\..\LICENSE')" />
+    <Content Include="..\..\assets\splash.jpg" Link="assets\splash.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

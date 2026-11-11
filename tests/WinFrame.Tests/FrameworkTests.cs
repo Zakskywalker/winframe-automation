@@ -8,6 +8,7 @@ using WinFrame.Core.Keywords;
 using WinFrame.Core.Logging;
 using WinFrame.Core.Native;
 using WinFrame.Core.Reporting;
+using WinFrame.Core.Update;
 
 namespace WinFrame.Tests;
 
@@ -209,6 +210,15 @@ public class FrameworkTests
         {
             if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
         }
+    }
+
+    [Fact]
+    public void AutoUpdateManager_Compares_Semantic_And_Build_Versions()
+    {
+        Assert.True(AutoUpdateManager.IsVersionNewer("1.0.0", "1.0.1"));
+        Assert.True(AutoUpdateManager.IsVersionNewer("1.0.0.0", "1.0.0.42"));
+        Assert.False(AutoUpdateManager.IsVersionNewer("1.0.0", "1.0.0"));
+        Assert.False(AutoUpdateManager.IsVersionNewer("1.0.0", "0.9.9"));
     }
 }
 

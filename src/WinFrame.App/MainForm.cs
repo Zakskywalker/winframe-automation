@@ -13,6 +13,7 @@ using WinFrame.Core.Recording;
 using WinFrame.Core.Reporting;
 using WinFrame.Core.Service;
 using WinFrame.Core.Themes;
+using WinFrame.Core.Update;
 using WinFrame.Core.Vision;
 
 namespace WinFrame.App;
@@ -104,6 +105,44 @@ public sealed class MainForm : Form
 
         ThemeEngine.Apply(this, ThemeEngine.GetTheme(cfg.Theme));
         ProcessManagementEngine.Shared.StartWatchdog();
+        _ = CheckForUpdatesOnStartupAsync();
+    }
+
+    private async Task CheckForUpdatesOnStartupAsync()
+    {
+        var (newer, manifest) = await AutoUpdateManager.CheckForUpdateAsync();
+        if (newer && manifest != null)
+        {
+            UpdateStatus($"Update v{manifest.Version} available! Use About -> Check for Updates to install.");
+        }
+    }
+
+    private async Task CheckForUpdatesInteractiveAsync()
+    {
+        UpdateStatus("Checking GitHub Pages for WinFrame updates...");
+        var (newer, manifest) = await AutoUpdateManager.CheckForUpdateAsync();
+        if (newer && manifest != null)
+        {
+            var ans = MessageBox.Show(
+                this,
+                $"A newer version of WinFrame ({manifest.Version}) is available!\n\n{manifest.ReleaseNotes}\n\nDownload and run the installer now?",
+                "WinFrame Auto-Updater",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Information);
+            if (ans == DialogResult.Yes)
+            {
+                await AutoUpdateManager.DownloadAndRunInstallerAsync(manifest.SetupUrl);
+            }
+        }
+        else
+        {
+            MessageBox.Show(
+                this,
+                $"WinFrame is up to date (v{AutoUpdateManager.CurrentVersion}).\nUpdate source: {AutoUpdateManager.DefaultPagesBaseUrl}",
+                "WinFrame Auto-Updater",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
     }
 
     private void BuildLayout()
@@ -151,6 +190,8 @@ public sealed class MainForm : Form
             using var dlg = new AboutDialog(this, repo, cfg);
             dlg.ShowDialog(this);
         });
+        mnuAbout.DropDownItems.Add(new ToolStripSeparator());
+        mnuAbout.DropDownItems.Add("Check for Updates (GitHub Pages Auto-Updater)...", null, async (_, _) => await CheckForUpdatesInteractiveAsync());
 
         menu.Items.Add(mnuFile);
         menu.Items.Add(mnuTools);

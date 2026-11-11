@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WinFrame Automation 1.0 — Hand of Glory Games and Software</title>
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --card: #151a24;
+      --card-alt: #1b2230;
+      --text: #e6edf3;
+      --muted: #94a3b8;
+      --accent: #f59e0b;
+      --accent-hover: #fbbf24;
+      --border: #2c3545;
+      --glow: rgba(245, 158, 11, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 50% 0%, #1e1b2e 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .hero {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 36px;
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 52px 24px 40px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-frame {
+      position: relative;
+      padding: 6px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #f59e0b, #7c3aed, #f59e0b);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.7), 0 0 28px var(--glow);
+    }
+
+    .logo-frame img {
+      display: block;
+      width: 220px;
+      height: auto;
+      border-radius: 13px;
+    }
+
+    .brand {
+      color: var(--accent);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 13px;
+    }
+
+    h1 {
+      margin: 8px 0 12px;
+      font-size: 38px;
+      line-height: 1.15;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 12px 0 20px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 11px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 999px;
+      background: var(--card-alt);
+      border: 1px solid var(--border);
+      color: var(--accent);
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 22px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      text-decoration: none;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #111827;
+      box-shadow: 0 8px 24px var(--glow);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--card-alt);
+      color: var(--text);
+      border: 1px solid var(--accent);
+    }
+
+    .btn-ghost {
+      background: var(--card);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 36px 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px;
+    }
+
+    .card h3 {
+      margin-top: 0;
+      color: var(--accent);
+    }
+
+    code,
+    pre {
+      font-family: 'Cascadia Code', Consolas, monospace;
+      background: #080b10;
+      border-radius: 6px;
+    }
+
+    code {
+      padding: 2px 6px;
+      font-size: 13px;
+      color: #fcd34d;
+    }
+
+    pre {
+      padding: 14px;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    pre code {
+      color: var(--text);
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 13.5px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--border);
+      padding: 9px 10px;
+      text-align: left;
+    }
+
+    th {
+      color: var(--accent);
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    footer {
+      text-align: center;
+      padding: 34px 16px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="hero">
+    <div class="logo-frame">
+      <img src="splash.jpg" alt="Hand of Glory Games and Software Splash Logo" />
+    </div>
+    <div style="flex:1;min-width:290px">
+      <div class="brand">Hand of Glory Games and Software &bull; Zak Millikin (Zakskywalker M_A.P.)</div>
+      <h1>WinFrame Windows Automation Studio 1.0</h1>
+      <div class="badge-row">
+        <span class="badge" id="version-badge">Version 1.0.0 &bull; Windows 11 x64 (.NET 10)</span>
+        <span class="badge">ClickOnce Auto-Updater</span>
+        <span class="badge">Win32 + UIA + OpenCvSharp4</span>
+        <span class="badge">Step Inverse &amp; Range Queue</span>
+      </div>
+      <p style="color:var(--muted);font-size:15.5px;margin:0">
+        Local &amp; Remote Keyword-Driven + Object-Oriented Windows Test Framework uniting
+        <strong>Win32 Native P/Invoke</strong>, <strong>Microsoft UI Automation (UIA)</strong>,
+        <strong>OpenCvSharp4 Vision &amp; Snipping</strong>, <strong>Win32 GDI Control Outlining</strong>,
+        <strong>Developer Step &amp; Inverse Range Execution</strong>, and <strong>Process Re-Harnessing</strong>.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="./setup.exe">&#11015; Install or Update WinFrame (ClickOnce setup.exe)</a>
+        <a class="btn btn-secondary" href="./WinFrame.Installer.exe">&#9881; Windows 11 Setup Wizard (WinFrame.Installer.exe)</a>
+        <a class="btn btn-ghost" href="./WinFrame.Core.dll">&#128230; WinFrame.Core.dll Library</a>
+        <a class="btn btn-ghost" href="https://github.com/Zakskywalker/winframe-automation">GitHub Repository</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <h2>Install, Auto-Update &amp; Deliverables</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>1. ClickOnce Auto-Updater &amp; Windows 11 Installer</h3>
+        <p>Install via <a href="./setup.exe"><code>setup.exe</code></a> for automatic GitHub Pages updates on every
+          push to <code>main</code>, or run <a href="./WinFrame.Installer.exe"><code>WinFrame.Installer.exe</code></a>
+          for the standalone Windows 11 GUI Setup Wizard (Shortcuts, Startup registration, CLI PATH, and Uninstaller).
+          You can also check for updates anytime inside <strong>About &rarr; Check for Updates Now</strong> or via
+          <code>winframe update</code>.</p>
+      </div>
+      <div class="card">
+        <h3>2. WinFrame.Core.dll (Embeddable Class Library)</h3>
+        <p>Attach directly to any Windows Forms, WPF, or console project. Provides <code>Win32Automation</code>,
+          <code>UiaAutomation</code>, <code>OpenCvAutomation</code>, <code>Win32Highlighter</code>,
+          <code>ProcessManagementEngine</code>, <code>ControlRepository</code>, <code>StepQueueController</code>,
+          <code>AutoUpdateManager</code>, and OOP base classes (<code>TestBase</code>, <code>ScreenObject</code>,
+          <code>UIControl</code>).</p>
+      </div>
+      <div class="card">
+        <h3>3. WinFrame.App.exe, WinFrame.Cli.exe &amp; WinFrame.Service.exe</h3>
+        <p>Full Desktop Studio with Hand of Glory splash screen, tray icon + scrolling marquee status,
+          <strong>Load Tests Queue</strong>, <strong>Developer Step Forward / Inverse / Range (1-3, 4-1)</strong> bar,
+          <strong>Create Tests</strong> recorder with the right-hand <strong>Accessory Control Naming Panel</strong>,
+          plus CLI runner and remote HTTP REST service.</p>
+      </div>
+    </div>
+
+    <h2 style="margin-top:36px">Local IDE Debugging (F5) &amp; Terminal Commands</h2>
+    <pre><code># Build &amp; Run all xUnit Tests
+dotnet build WinFrame.sln
+dotnet test WinFrame.sln
+
+# Launch WinFrame Desktop Studio (WinForms GUI)
+dotnet run --project src/WinFrame.App/WinFrame.App.csproj
+
+# Run a Keyword Sheet or Reverse Step Range from CLI
+dotnet run --project src/WinFrame.Cli/WinFrame.Cli.csproj -- run samples/highlight_and_inverse_demo.csv
+dotnet run --project src/WinFrame.Cli/WinFrame.Cli.csproj -- range samples/highlight_and_inverse_demo.csv 6-4
+dotnet run --project src/WinFrame.Cli/WinFrame.Cli.csproj -- update --check
+
+# Launch the Windows 11 Setup Wizard GUI or Build Installer Package
+dotnet run --project src/WinFrame.Installer/WinFrame.Installer.csproj
+powershell -ExecutionPolicy Bypass -File .\installer\build_installer.ps1</code></pre>
+
+    <h2 style="margin-top:36px">Developer Step Queue, Rule-Based Inversion &amp; Range Execution</h2>
+    <p>Run steps one by one, step backward with automatic rule-based inversion (entering text becomes deleting text;
+      checking becomes unchecking; expanding becomes collapsing), or execute any forward or reverse range:</p>
+    <pre><code>// C# OOP &amp; StepQueueController example
+var engine = new KeywordFramework();
+var controller = engine.CreateStepController(myTest, autoInverseOnError: true);
+
+controller.StepNext();                   // Step 1 forward
+controller.StepPrevious(useInverse:true);// Reverses step 1 using StepInversionEngine
+controller.ExecuteRange("1-3");          // Runs steps 1, 2, 3 forward
+controller.ExecuteRange("4-2");          // Walks 4 -> 3 -> 2 in reverse and executes each step's inverse!</code></pre>
+
+    <h2 style="margin-top:36px">Win32 GDI Control Highlighting</h2>
+    <p>Set <code>highlight = "1"</code> or <code>"true"</code> in config/test variables to outline every targeted
+      control with a Win32 GDI pen for the configured short interval (set to <code>"0"</code>, <code>""</code>, or
+      <code>null</code> to turn off), or use the special <code>HIGHLIGHT</code> keyword command in any sheet:</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Action</th>
+          <th>Target</th>
+          <th>Value</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>HIGHLIGHT</code></td>
+          <td><code>@button_1,@edit_1</code></td>
+          <td><code>#F59E0B|280|3</code></td>
+          <td>Outlines controls with Win32 GDI when <code>highlight=1/true</code></td>
+        </tr>
+        <tr>
+          <td><code>UIA_INVOKE</code></td>
+          <td><code>@button_1</code></td>
+          <td></td>
+          <td>Invokes UIA InvokePattern (with native click fallback)</td>
+        </tr>
+        <tr>
+          <td><code>UIA_SET_VALUE</code></td>
+          <td><code>@edit_1</code></td>
+          <td><code>Hello World</code></td>
+          <td>Sets value (inverse automatically clears/restores text)</td>
+        </tr>
+        <tr>
+          <td><code>CV_SNAPSHOT_CONTROL</code></td>
+          <td><code>@button_1</code></td>
+          <td></td>
+          <td>Captures OpenCV control + window snapshot to Control Sheet</td>
+        </tr>
+        <tr>
+          <td><code>CV_CLICK_IMAGE</code></td>
+          <td><code>@button_1</code></td>
+          <td><code>0.85</code></td>
+          <td>Finds control on screen via OpenCvSharp template matching and clicks</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+
+  <footer>
+    Hand of Glory Games and Software &bull; Creator &amp; Architect: <strong>Zak Millikin (Zakskywalker M_A.P.)</strong> &bull;
+    AI Pair Programmers: <strong>Google DeepMind Antigravity (Claude Opus &amp; Gemini)</strong> &bull;
+    Splash Image Artwork: <a href="https://perchance.org/cursed-ai">Perchance AI (Cursed)</a> &bull;
+    <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License v3.0</a>
+  </footer>
+
+  <script>
+    fetch('./version.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data && data.version) {
+          const el = document.getElementById('version-badge');
+          if (el) el.textContent = 'Version ' + data.version + ' \u2022 Windows 11 x64 (.NET 10)';
+        }
+      })
+      .catch(() => { });
+  </script>
+</body>
+
+</html>
