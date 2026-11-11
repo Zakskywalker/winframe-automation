@@ -16,3 +16,4 @@ snapshots/
 *.log
 appsettings.local.json
 config/credentials.json
+

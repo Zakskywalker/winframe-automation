@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WinFrame Automation — Hand of Glory Games and Software</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #f59e0b;
+      --border: #30363d;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    .hero { display: flex; flex-wrap: wrap; align-items: center; gap: 32px; max-width: 1120px; margin: 0 auto; padding: 48px 24px 32px; border-bottom: 1px solid var(--border); }
+    .hero img { width: 200px; border-radius: 14px; border: 2px solid var(--accent); box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+    .brand { color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 13px; }
+    h1 { margin: 6px 0 12px; font-size: 36px; }
+    .container { max-width: 1120px; margin: 0 auto; padding: 32px 24px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 18px; margin-top: 20px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .card h3 { margin-top: 0; color: var(--accent); }
+    code, pre { font-family: Consolas, monospace; background: #090d12; border-radius: 6px; }
+    code { padding: 2px 6px; font-size: 13px; }
+    pre { padding: 14px; overflow-x: auto; border: 1px solid var(--border); font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13.5px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 9px 10px; text-align: left; }
+    th { color: var(--accent); }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    footer { text-align: center; padding: 32px 16px; color: var(--muted); border-top: 1px solid var(--border); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <img src="splash.jpg" alt="Hand of Glory Games and Software Splash" />
+    <div style="flex:1;min-width:280px">
+      <div class="brand">Hand of Glory Games and Software &bull; Zak Millikin</div>
+      <h1>WinFrame Windows Automation Framework</h1>
+      <p style="color:var(--muted);font-size:16px">
+        Local &amp; Remote Keyword-Driven + Object-Oriented Windows Test Framework uniting
+        <strong>Win32 Native P/Invoke</strong>, <strong>Microsoft UI Automation (UIA)</strong>,
+        <strong>OpenCvSharp4 Vision &amp; Snipping</strong>, <strong>Win32 GDI Control Outlining</strong>,
+        <strong>Developer Step &amp; Inverse Range Execution</strong>, and <strong>Process Re-Harnessing</strong>.
+      </p>
+      <p>
+        <a href="https://github.com/Zakskywalker/winframe-automation">GitHub Repository</a> &bull;
+        <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3.0 License</a>
+      </p>
+    </div>
+  </header>
+
+  <main class="container">
+    <h2>Architecture &amp; Deliverables</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>1. WinFrame.Core.dll (Embeddable Class Library)</h3>
+        <p>Attach directly to any Windows Forms, WPF, or console project. Provides <code>Win32Automation</code>, <code>UiaAutomation</code>, <code>OpenCvAutomation</code>, <code>Win32Highlighter</code>, <code>ProcessManagementEngine</code>, <code>ControlRepository</code>, <code>StepQueueController</code>, and OOP base classes (<code>TestBase</code>, <code>ScreenObject</code>, <code>UIControl</code>).</p>
+      </div>
+      <div class="card">
+        <h3>2. WinFrame.App.exe (Desktop Studio)</h3>
+        <p>Includes the Hand of Glory splash screen, notification tray icon with scrolling marquee status, <strong>Load Tests Queue</strong> pipeline, <strong>Developer Step Forward / Inverse / Range (1-3, 4-1)</strong> bar, and <strong>Create Tests</strong> recorder with the right-hand <strong>Accessory Control Naming Panel</strong>.</p>
+      </div>
+      <div class="card">
+        <h3>3. WinFrame.Cli.exe &amp; WinFrame.Service.exe</h3>
+        <p>Run test queues, step ranges, inverse rollbacks, control scraping, or host the REST API service (<code>/api/queue/run</code>, <code>/api/step-queue/next</code>, <code>/api/step-queue/prev</code>, <code>/api/step-queue/range</code>) on local or remote machines.</p>
+      </div>
+    </div>
+
+    <h2 style="margin-top:36px">Developer Step Queue, Rule-Based Inversion &amp; Range Execution</h2>
+    <p>Run steps one by one, step backward with automatic rule-based inversion (entering text becomes deleting text; checking becomes unchecking; expanding becomes collapsing), or execute any forward or reverse range:</p>
+    <pre><code>// C# OOP &amp; StepQueueController example
+var engine = new KeywordFramework();
+var controller = engine.CreateStepController(myTest, autoInverseOnError: true);
+
+controller.StepNext();                   // Step 1 forward
+controller.StepPrevious(useInverse:true);// Reverses step 1 using StepInversionEngine
+controller.ExecuteRange("1-3");          // Runs steps 1, 2, 3 forward
+controller.ExecuteRange("4-2");          // Walks 4 -> 3 -> 2 in reverse and executes each step's inverse!</code></pre>
+
+    <h2 style="margin-top:36px">Win32 GDI Control Highlighting</h2>
+    <p>Set <code>highlight = "1"</code> or <code>"true"</code> in config/test variables to outline every targeted control with a Win32 GDI pen for the configured short interval (set to <code>"0"</code>, <code>""</code>, or <code>null</code> to turn off), or use the special <code>HIGHLIGHT</code> keyword command in any sheet:</p>
+    <table>
+      <thead><tr><th>Action</th><th>Target</th><th>Value</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>HIGHLIGHT</code></td><td><code>@button_1,@edit_1</code></td><td><code>#F59E0B|280|3</code></td><td>Outlines controls with Win32 GDI when <code>highlight=1/true</code></td></tr>
+        <tr><td><code>UIA_INVOKE</code></td><td><code>@button_1</code></td><td></td><td>Invokes UIA InvokePattern (with native click fallback)</td></tr>
+        <tr><td><code>UIA_SET_VALUE</code></td><td><code>@edit_1</code></td><td><code>Hello World</code></td><td>Sets value (inverse automatically clears/restores text)</td></tr>
+        <tr><td><code>CV_SNAPSHOT_CONTROL</code></td><td><code>@button_1</code></td><td></td><td>Captures OpenCV control + window snapshot to Control Sheet</td></tr>
+        <tr><td><code>CV_CLICK_IMAGE</code></td><td><code>@button_1</code></td><td><code>0.85</code></td><td>Finds control on screen via OpenCvSharp template matching and clicks</td></tr>
+      </tbody>
+    </table>
+  </main>
+
+  <footer>
+    Hand of Glory Games and Software &bull; Creator: <strong>Zak Millikin (Zakskywalker M_A.P.)</strong> &bull;
+    AI Collaborators: <strong>Google DeepMind Antigravity (Claude Opus &amp; Gemini)</strong> &bull;
+    Splash Image: <a href="https://perchance.org/cursed-ai">Perchance AI (Cursed)</a> &bull;
+    <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License v3.0</a>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>WinFrame.Service</AssemblyName>
+    <RootNamespace>WinFrame.Service</RootNamespace>
+    <Description>WinFrame Remote Execution &amp; Step-Queue API Service Host.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WinFrame.Core\WinFrame.Core.csproj" />
+  </ItemGroup>
+
+</Project>

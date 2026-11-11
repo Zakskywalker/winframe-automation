@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>WinFrame.Cli</AssemblyName>
+    <RootNamespace>WinFrame.Cli</RootNamespace>
+    <Description>WinFrame Command-Line Interface for running keyword sheets, step ranges, inverse rollbacks, control scraping, OpenCV snapshots, and remote service hosting.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WinFrame.Core\WinFrame.Core.csproj" />
+  </ItemGroup>
+
+</Project>

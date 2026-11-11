@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>WinFrame.App</AssemblyName>
+    <RootNamespace>WinFrame.App</RootNamespace>
+    <Description>WinFrame Desktop Studio: Load Tests Queue, Developer Step/Inverse Range Controller, Create Tests Recorder &amp; Control Scraper with Accessory Naming Panel, OpenCV Snipping Tool, Theme Picker, and Tray Reporting.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WinFrame.Core\WinFrame.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\assets\splash.jpg" Link="assets\splash.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>
