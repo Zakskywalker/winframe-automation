@@ -36,27 +36,61 @@ jobs:
       - name: Run Unit Tests
         run: dotnet test WinFrame.sln --configuration Release
 
-      - name: Publish ClickOnce Package, Setup Wizard & Landing Page
+      - name: Publish Self-Contained Installer, ClickOnce Package & Landing Page
         shell: pwsh
         run: |
           $version = "1.0.0.$env:GITHUB_RUN_NUMBER"
           $publishDir = "$env:GITHUB_WORKSPACE\clickonce\"
           New-Item -ItemType Directory -Force -Path $publishDir | Out-Null
 
-          msbuild src/WinFrame.App/WinFrame.App.csproj `
-            /restore `
-            /target:Publish `
-            /property:Configuration=Release `
-            /property:PublishProfile=GitHubPages `
-            /property:ApplicationVersion=$version `
-            /property:PublishDir=$publishDir
+          # 1. Publish all components to win11-x64 payload directory
+          $appPub = "$env:GITHUB_WORKSPACE\publish\win11-x64"
+          New-Item -ItemType Directory -Force -Path $appPub | Out-Null
+          dotnet publish src/WinFrame.App/WinFrame.App.csproj -c Release -r win-x64 -o $appPub
+          dotnet publish src/WinFrame.Cli/WinFrame.Cli.csproj -c Release -r win-x64 -o $appPub
+          dotnet publish src/WinFrame.Service/WinFrame.Service.csproj -c Release -r win-x64 -o $appPub
+          Copy-Item LICENSE "$appPub\LICENSE" -Force
+          Copy-Item README.md "$appPub\README.md" -Force
+          Copy-Item installer/install_windows11.ps1 "$appPub\Install.ps1" -Force
+          New-Item -ItemType Directory -Force -Path "$appPub\assets" | Out-Null
+          Copy-Item assets/splash.jpg "$appPub\assets\splash.jpg" -Force
 
-          dotnet publish src/WinFrame.Installer/WinFrame.Installer.csproj -c Release -r win-x64 --self-contained false -o "$env:GITHUB_WORKSPACE\installer_pub"
-          if (Test-Path "$env:GITHUB_WORKSPACE\installer_pub\WinFrame.Installer.exe") {
-            Copy-Item "$env:GITHUB_WORKSPACE\installer_pub\WinFrame.Installer.exe" "$publishDir\WinFrame.Installer.exe" -Force
+          # 2. Package WinFramePayload.zip for the self-contained installer
+          $zipPath = "$env:GITHUB_WORKSPACE\installer\WinFramePayload.zip"
+          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          Compress-Archive -Path "$appPub\*" -DestinationPath $zipPath -Force
+
+          # 3. Publish Self-Contained Installer Wizard with embedded payload
+          $instPub = "$env:GITHUB_WORKSPACE\installer_pub"
+          dotnet publish src/WinFrame.Installer/WinFrame.Installer.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            "-p:PublishSingleFile=true" `
+            "-p:IncludeNativeLibrariesForSelfExtract=true" `
+            "-p:InstallerPayloadZip=$zipPath" `
+            -o $instPub
+
+          if (Test-Path "$instPub\WinFrame.Installer.exe") {
+            Copy-Item "$instPub\WinFrame.Installer.exe" "$publishDir\WinFrame.Installer.exe" -Force
           }
 
-          if (Test-Path "src/WinFrame.Core/bin/out/Release/net10.0-windows/win-x64/WinFrame.Core.dll") {
+          # 4. Publish ClickOnce Auto-Update package
+          try {
+            msbuild src/WinFrame.App/WinFrame.App.csproj `
+              /restore `
+              /target:Publish `
+              /property:Configuration=Release `
+              /property:PublishProfile=GitHubPages `
+              /property:ApplicationVersion=$version `
+              /property:PublishDir=$publishDir
+          } catch {
+            Write-Warning "ClickOnce publish warning: $_"
+          }
+
+          if (Test-Path "$appPub\WinFrame.Core.dll") {
+            Copy-Item "$appPub\WinFrame.Core.dll" "$publishDir\WinFrame.Core.dll" -Force
+          } elseif (Test-Path "src/WinFrame.Core/bin/out/Release/net10.0-windows/win-x64/WinFrame.Core.dll") {
             Copy-Item "src/WinFrame.Core/bin/out/Release/net10.0-windows/win-x64/WinFrame.Core.dll" "$publishDir\WinFrame.Core.dll" -Force
           }
 

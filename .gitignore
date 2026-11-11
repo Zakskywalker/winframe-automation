@@ -15,6 +15,7 @@ TestResults/
 ## WinFrame runtime output
 winframe_data/
 dist/
+installer/*.zip
 logs/
 reports/
 snapshots/

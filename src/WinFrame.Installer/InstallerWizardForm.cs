@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Drawing;
+using System.IO.Compression;
 using System.Windows.Forms;
 
 namespace WinFrame.Installer;
@@ -73,18 +74,35 @@ public sealed class InstallerWizardForm : Form
             SizeMode = PictureBoxSizeMode.Zoom,
             BackColor = Color.FromArgb(15, 11, 18)
         };
-        string imgPath = Path.Combine(AppContext.BaseDirectory, "assets", "splash.jpg");
-        if (!File.Exists(imgPath))
-            imgPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "assets", "splash.jpg"));
-        if (File.Exists(imgPath))
+
+        // 1. Try loading from embedded manifest resource
+        try
         {
-            try
+            using var stream = typeof(InstallerWizardForm).Assembly.GetManifestResourceStream("splash.jpg");
+            if (stream != null)
             {
-                using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                using var src = Image.FromStream(fs);
-                pic.Image = new Bitmap(src);
+                using var bmp = Image.FromStream(stream);
+                pic.Image = new Bitmap(bmp);
             }
-            catch { }
+        }
+        catch { }
+
+        // 2. Fallback to candidate file paths
+        if (pic.Image == null)
+        {
+            string imgPath = Path.Combine(AppContext.BaseDirectory, "assets", "splash.jpg");
+            if (!File.Exists(imgPath))
+                imgPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "assets", "splash.jpg"));
+            if (File.Exists(imgPath))
+            {
+                try
+                {
+                    using var fs = new FileStream(imgPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    using var src = Image.FromStream(fs);
+                    pic.Image = new Bitmap(src);
+                }
+                catch { }
+            }
         }
 
         var lblBrand = new Label
@@ -279,41 +297,106 @@ public sealed class InstallerWizardForm : Form
     private async Task PerformInstallAsync()
     {
         lblInstallStatus.Text = "Creating installation folder...";
-        prgInstall.Value = 15;
+        prgInstall.Value = 10;
         Directory.CreateDirectory(targetDirectory);
-        await Task.Delay(150);
+        await Task.Delay(100);
 
-        lblInstallStatus.Text = "Copying WinFrame binaries & OpenCV runtime...";
-        prgInstall.Value = 45;
+        lblInstallStatus.Text = "Extracting WinFrame binaries & OpenCV runtime...";
+        prgInstall.Value = 25;
 
-        string[] candidateDirs =
+        bool extracted = false;
+        int filesCopied = 0;
+
+        // 1. Primary: Extract from self-contained embedded WinFramePayload.zip
+        try
         {
-            AppContext.BaseDirectory,
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "WinFrame.App", "bin", "out", "Release", "net10.0-windows", "win-x64")),
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "WinFrame.App", "bin", "out", "Debug", "net10.0-windows", "win-x64")),
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "publish", "win11-x64"))
-        };
-
-        string? sourceDir = candidateDirs.FirstOrDefault(d => File.Exists(Path.Combine(d, "WinFrame.App.exe")));
-        if (sourceDir != null)
-        {
-            foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+            using var zipStream = typeof(InstallerWizardForm).Assembly.GetManifestResourceStream("WinFramePayload.zip");
+            if (zipStream != null)
             {
-                string rel = Path.GetRelativePath(sourceDir, file);
-                string dst = Path.Combine(targetDirectory, rel);
-                Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
-                try { File.Copy(file, dst, overwrite: true); } catch { }
+                using var archive = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Read);
+                int totalEntries = Math.Max(1, archive.Entries.Count);
+                int currentEntry = 0;
+
+                foreach (var entry in archive.Entries)
+                {
+                    currentEntry++;
+                    if (string.IsNullOrEmpty(entry.Name)) continue; // Skip directory entries
+
+                    string dst = Path.Combine(targetDirectory, entry.FullName);
+                    Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
+
+                    lblInstallStatus.Text = $"Extracting {entry.Name}...";
+                    entry.ExtractToFile(dst, overwrite: true);
+                    filesCopied++;
+
+                    int progress = 25 + (int)((double)currentEntry / totalEntries * 55);
+                    prgInstall.Value = Math.Min(80, progress);
+                }
+                extracted = filesCopied > 0;
             }
         }
-        await Task.Delay(200);
+        catch (Exception ex)
+        {
+            Debug.WriteLine("Embedded zip extraction exception: " + ex);
+        }
+
+        // 2. Secondary: Fallback to local development / unpacked candidate directories
+        if (!extracted)
+        {
+            string[] candidateDirs =
+            {
+                AppContext.BaseDirectory,
+                Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "WinFrame.App", "bin", "out", "Release", "net10.0-windows", "win-x64")),
+                Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "WinFrame.App", "bin", "out", "Debug", "net10.0-windows", "win-x64")),
+                Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "publish", "win11-x64")),
+                Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "win11-x64"))
+            };
+
+            string? sourceDir = candidateDirs.FirstOrDefault(d => File.Exists(Path.Combine(d, "WinFrame.App.exe")));
+            if (sourceDir != null)
+            {
+                var files = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories);
+                int total = Math.Max(1, files.Length);
+                int idx = 0;
+                foreach (var file in files)
+                {
+                    idx++;
+                    string rel = Path.GetRelativePath(sourceDir, file);
+                    string dst = Path.Combine(targetDirectory, rel);
+                    Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
+                    try
+                    {
+                        File.Copy(file, dst, overwrite: true);
+                        filesCopied++;
+                    }
+                    catch { }
+                    prgInstall.Value = 25 + (int)((double)idx / total * 55);
+                }
+                extracted = filesCopied > 0;
+            }
+        }
+
+        // 3. Verification guard: Ensure the application actually exists
+        string destExe = Path.Combine(targetDirectory, "WinFrame.App.exe");
+        if (!extracted || !File.Exists(destExe))
+        {
+            lblInstallStatus.Text = "Installation failed: Application files not found.";
+            prgInstall.Value = 100;
+            MessageBox.Show(
+                "The setup wizard could not find the WinFrame application payload.\r\n\r\n" +
+                "Please download the latest self-contained installer from GitHub Releases or build it using installer\\build_installer.ps1.",
+                "WinFrame Setup Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return;
+        }
 
         lblInstallStatus.Text = "Creating Windows 11 shortcuts & registry entry...";
-        prgInstall.Value = 80;
-        string destExe = Path.Combine(targetDirectory, "WinFrame.App.exe");
+        prgInstall.Value = 88;
         CreateShortcutsAndRegistry(destExe);
         await Task.Delay(150);
 
-        lblInstallStatus.Text = "Installation complete!";
+        lblInstallStatus.Text = $"Installation complete! ({filesCopied} files installed)";
         prgInstall.Value = 100;
     }
 
