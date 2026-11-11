@@ -4,6 +4,9 @@ obj/
 *.user
 *.suo
 .vs/
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
 *.nupkg
 publish/
 artifacts/

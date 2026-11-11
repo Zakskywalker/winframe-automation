@@ -185,3 +185,4 @@ public static class BuiltInKeywords
         ctx.Variables.TryGetValue(target, out var actual) &&
         actual.Equals(expected, StringComparison.OrdinalIgnoreCase);
 }
+

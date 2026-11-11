@@ -44,3 +44,4 @@ public static class Csv
         if (cell.Length > 0 || row.Count > 0) { row.Add(cell.ToString()); yield return row; }
     }
 }
+

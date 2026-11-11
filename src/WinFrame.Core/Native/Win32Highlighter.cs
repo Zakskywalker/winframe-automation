@@ -109,6 +109,11 @@ public static class Win32Highlighter
         return Rectangle.Empty;
     }
 
+    public static bool IsNonControlAction(string action) =>
+        action.ToUpperInvariant() is "SET_VAR" or "ASSERT_VAR" or "CHECK_VAR" or "LOG" or "WAIT" or "SLEEP"
+            or "HIGHLIGHT" or "WIN32_HIGHLIGHT" or "OUTLINE_CONTROL" or "HIGHLIGHT_CONTROLS"
+            or "CV_SNAPSHOT_SCREEN" or "SNAPSHOT_SCREEN" or "SCREENSHOT";
+
     /// <summary>
     /// Automatically called before each step when <see cref="KeywordContext.IsHighlightEnabled"/> is true
     /// (<c>highlight = 1</c> or <c>true</c>).
@@ -199,3 +204,4 @@ public static class Win32Highlighter
         return steps;
     }
 }
+

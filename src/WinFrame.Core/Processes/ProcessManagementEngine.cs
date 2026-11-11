@@ -337,3 +337,4 @@ public sealed class ProcessManagementEngine : IDisposable
         return Shared.Active is { IsAlive: true, IsResponding: true } || FindTopLevelWindow(target, target) != IntPtr.Zero;
     }
 }
+

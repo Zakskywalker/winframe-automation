@@ -266,3 +266,4 @@ public sealed class TestRecorder : IDisposable
 
     public void Dispose() => StopRecording();
 }
+

@@ -452,7 +452,7 @@ public sealed class StepQueueController
         try
         {
             if (Context.IsHighlightEnabled && !string.IsNullOrWhiteSpace(sr.Target) &&
-                !step.Action.Equals("HIGHLIGHT", StringComparison.OrdinalIgnoreCase))
+                !Win32Highlighter.IsNonControlAction(step.Action))
             {
                 Win32Highlighter.HighlightTargetIfEnabled(Context, sr.Target);
             }
